@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Эльфячий Стикс — Портал</title>
+    <title>Эльфячий Стикс</title>
     <style>
         body { 
             background-color: #0f1410; 
@@ -12,64 +12,82 @@
             display: flex; 
             justify-content: center; 
             align-items: center; 
-            height: 100vh; 
+            min-height: 100vh; 
             margin: 0; 
             text-align: center; 
         }
-        .portal-card { 
+        .game-card { 
             background: #161f18; 
             border: 2px solid #2d4231; 
-            padding: 30px; 
+            padding: 20px; 
             border-radius: 12px; 
             box-shadow: 0 0 20px rgba(0,0,0,0.5); 
             max-width: 400px; 
             width: 90%; 
+            box-sizing: border-box;
+        }
+        .stats-bar {
+            display: flex;
+            justify-content: space-between;
+            background: #090d0a;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        .quest-text {
+            background: #090d0a;
+            border: 1px solid #2d4231;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: left;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #d1ebd5;
+            margin-bottom: 15px;
         }
         .btn { 
             display: block; 
-            background: #253528; 
+            background: #1a261d; 
             color: #a3e350; 
-            border: 1px solid #a3e350; 
-            padding: 15px 20px; 
-            font-size: 16px; 
-            font-weight: bold; 
+            border: 1px solid #2d4231; 
+            padding: 12px; 
+            font-size: 15px; 
             border-radius: 8px; 
             text-decoration: none; 
-            margin-top: 15px; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3); 
+            margin-top: 10px; 
             cursor: pointer; 
             transition: all 0.2s ease; 
             width: 100%;
             box-sizing: border-box;
+            text-align: left;
         }
-        .btn:active { 
-            background: #a3e350; 
-            color: #000; 
+        .btn:active { background: #2d4231; }
+        .btn-action {
+            background: #a3e350;
+            color: #000;
+            font-weight: bold;
+            text-align: center;
         }
-        .btn-secondary { 
-            background: transparent; 
-            border: 1px dashed #2d4231; 
-            color: #8bbd45; 
-            font-size: 14px; 
-            padding: 10px; 
+        .btn-action:active { background: #8bbd45; color: #000; }
+        
+        /* Стили админки кода */
+        .admin-panel {
+            margin-top: 20px;
+            border-top: 1px dashed #2d4231;
+            padding-top: 15px;
         }
-        .btn-secondary:active { 
-            background: #2d4231; 
-            color: #a3e350; 
-        }
-        .save-area { 
+        .code-area { 
             width: 100%; 
-            height: 80px; 
-            background: #090d0a; 
-            border: 1px solid #2d4231; 
+            height: 180px; 
+            background: #050806; 
+            border: 1px solid #a3e350; 
             color: #8bbd45; 
             border-radius: 6px; 
-            margin-top: 15px; 
             padding: 8px; 
             box-sizing: border-box; 
             font-family: monospace; 
             font-size: 11px; 
-            resize: none; 
         }
         .error-box {
             background: #2a1414;
@@ -77,116 +95,138 @@
             color: #ff6b6b;
             padding: 10px;
             border-radius: 6px;
-            margin-top: 15px;
-            font-size: 14px;
+            margin: 10px 0;
+            font-size: 13px;
             display: none;
+            text-align: left;
         }
     </style>
 </head>
 <body>
 
-<div class="portal-card">
+<div class="game-card">
     <h2>🧝 ЭЛЬФЯЧИЙ СТИКС</h2>
-    <p style="color: #d1ebd5; font-size: 14px;">Ваша персональная точка сохранения проекта</p>
     
-    <div id="error-display" class="error-box"></div>
+    <div class="stats-bar">
+        <span>❤️ <span id="hp">100</span></span>
+        <span>✨ <span id="mp">50</span></span>
+        <span>🟡 <span id="gold">10</span></span>
+    </div>
 
-    <a href="#" id="chat-link" class="btn">🔗 ОТКРЫТЬ НАШ ЧАТ</a>
-    
-    <textarea id="save-data" class="save-area" placeholder="Вставьте код сохранения сюда...">{"project":"Эльфячий Стикс","status":"Сохранено"}</textarea>
-    
-    <button onclick="copySaveText()" class="btn btn-secondary">📋 Скопировать текст сохранения</button>
-    <button onclick="applyAndRefresh()" class="btn" style="background: #a3e350; color: #000;">⚡ Применить и обновить сайт</button>
+    <div id="quest-display" class="quest-text">
+        Вы открываете глаза. Перед вами простирается туманная, светящаяся зеленым неоном река Стикс. В кармане плаща лежит горсть старых монет. Куда вы направитесь?
+    </div>
+
+    <div id="choices-container">
+        <button class="btn" onclick="move('forest')">🌲 Идти в Шепчущий лес</button>
+        <button class="btn" onclick="move('ruins')">🏛️ Исследовать древние руины</button>
+        <button class="btn" onclick="move('river')">💧 Испить воды из реки</button>
+    </div>
+
+    <a href="#" id="chat-link" class="btn" style="text-align:center; border-color: #557a3a;">🔗 ОТКРЫТЬ НАШ ЧАТ</a>
+
+    <!-- Быстрая админка кода прямо в телефоне -->
+    <div class="admin-panel">
+        <div id="admin-error" class="error-box"></div>
+        <textarea id="code-editor" class="code-area" placeholder="Вставьте код сохранения или конфигурацию квеста..."></textarea>
+        <button onclick="saveCodeDirectly()" class="btn btn-action">💾 Сохранить код прямо в GitHub</button>
+    </div>
 </div>
 
 <script>
-// Автоматическая подстановка ссылки на текущий диалог
+// Ссылка на чат
 document.getElementById('chat-link').href = window.location.href;
 
-function showError(message) {
-    const errBox = document.getElementById("error-display");
-    errBox.innerText = "❌ Ошибка: " + message;
-    errBox.style.display = "block";
+// Токен и параметры вашего репозитория (Заполните один раз!)
+const GITHUB_TOKEN = "ВАШ_STIKSKEY_ТОКЕН"; 
+const REPO_OWNER = "ВАШ_НИК_НА_GITHUB";
+const REPO_NAME = "НАЗВАНИЕ_РЕПОЗИТОРИЯ";
+const FILE_PATH = "stiks_game.html"; // Имя этого файла в репозитории
+
+// Текущее состояние игры (квест-система)
+let gameState = { hp: 100, mp: 50, gold: 10, location: "start" };
+
+// Синхронизируем состояние с текстовым полем при старте
+document.getElementById('code-editor').value = JSON.stringify(gameState, null, 2);
+
+function move(loc) {
+    if(loc === 'forest') {
+        gameState.hp -= 10;
+        document.getElementById('quest-display').innerText = "Деревья шепчут древние заклинания. Вы потеряли 10 HP от магии леса, но нашли тропу.";
+    } else if(loc === 'ruins') {
+        gameState.gold += 15;
+        document.getElementById('quest-display').innerText = "В обломках колонны вы нашли кошель со старыми монетами (+15 золота) !";
+    } else if(loc === 'river') {
+        gameState.mp += 20;
+        document.getElementById('quest-display').innerText = "Вкус воды отдает металлом и вечностью. Ваши магические силы восстановились (+20 MP).";
+    }
+    
+    // Обновляем интерфейс
+    document.getElementById('hp').innerText = gameState.hp;
+    document.getElementById('mp').innerText = gameState.mp;
+    document.getElementById('gold').innerText = gameState.gold;
+    
+    // Пишем изменения в редактор
+    document.getElementById('code-editor').value = JSON.stringify(gameState, null, 2);
 }
 
-function copySaveText() {
+// ГЛАВНАЯ ФУНКЦИЯ: Публикация изменений без прыжков по сайтам
+async function saveCodeDirectly() {
+    const editorData = document.getElementById("code-editor").value;
+    const errBox = document.getElementById("admin-error");
+    errBox.style.display = "none";
+
+    if (GITHUB_TOKEN === "ВАШ_STIKSKEY_ТОКЕН") {
+        errBox.innerText = "❌ Ошибка: Сначала пропишите ваш GITHUB_TOKEN внутри тега <script> кода!";
+        errBox.style.display = "block";
+        return;
+    }
+
     try {
-        const copyText = document.getElementById("save-data");
-        copyText.select();
-        copyText.setSelectionRange(0, 99999);
-        navigator.clipboard.writeText(copyText.value);
+        // 1. Получаем SHA предыдущего файла (требование GitHub API)
+        const url = `https://github.com{REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`;
+        const getFile = await fetch(url, {
+            headers: { "Authorization": `token ${GITHUB_TOKEN}` }
+        });
         
-        const btn = document.querySelector('.btn-secondary');
-        const originalText = btn.innerHTML;
-        btn.innerHTML = "✅ Скопировано!";
-        setTimeout(() => btn.innerHTML = originalText, 2000);
-    } catch (err) {
-        showError("Не удалось скопировать");
-    }
-}
+        if (!getFile.ok) throw new Error("Не удалось получить данные файла с GitHub");
+        const fileData = await getFile.json();
+        const sha = fileData.sha;
 
-async function applyAndRefresh() {
-    const saveData = document.getElementById("save-data").value;
-    const errBox = document.getElementById("error-display");
-    errBox.style.display = "none"; // Сбрасываем старую ошибку
+        // Если вы изменили JSON состояния — сохраняем как состояние. 
+        // Если вы решите переписать весь HTML код — скрипт отправит его целиком.
+        let finalContent = editorData;
+        
+        // Переводим текст в Base64 для GitHub API
+        const base64Content = btoa(unescape(encodeURIComponent(finalContent)));
 
-    // Проверка на пустой ввод
-    if (!saveData.trim()) {
-        showError("Поле сохранения пустое!");
-        return;
-    }
-
-    // Безопасная проверка JSON перед отправкой, чтобы не ломать скрипт
-    try {
-        JSON.parse(saveData);
-    } catch (e) {
-        showError("Неверный формат кода сохранения (ошибка в JSON)");
-        return;
-    }
-
-    // Отправка запроса с жестким ограничением по времени (таймаут 5 секунд)
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-    try {
-        // Здесь ваш URL бэкенда. Если он упадет, игра НЕ зависнет, а просто покажет ошибку
-        const response = await fetch('https://netlify.app', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: saveData,
-            signal: controller.signal
+        // 2. Отправляем обновление прямо на GitHub
+        const updateFile = await fetch(url, {
+            method: "PUT",
+            headers: {
+                "Authorization": `token ${GITHUB_TOKEN}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                message: "⚡ Быстрое обновление кода из мобильной админки",
+                content: base64Content,
+                sha: sha
+            })
         });
 
-        clearTimeout(timeoutId);
+        if (updateFile.ok) {
+            alert("🚀 Код успешно отправлен на GitHub! Netlify обновит сайт через 10-15 секунд.");
+            setTimeout(() => window.location.reload(), 2000);
+        } else {
+            const errRes = await updateFile.json();
+            throw new Error(errRes.message || "Ошибка записи");
+        }
 
-        if (response.ok) {
-            alert("Данные успешно применены! Перезагружаем...");
-            window.location.reload();
-        } else {
-            showError("Сервер ответил кодом " + response.status);
-        }
     } catch (err) {
-        clearTimeout(timeoutId);
-        if (err.name === 'AbortError') {
-            showError("Сервер не ответил за 5 секунд (Таймаут)");
-        } else {
-            showError("Не удалось связаться с сервером (Failed to fetch)");
-        }
+        errBox.innerText = "❌ Ошибка GitHub API: " + err.message;
+        errBox.style.display = "block";
     }
 }
-
-// Безопасный вызов инициализации интерфейса при старте
-function updateUI() {
-    try {
-        // Логика отрисовки, защищенная от бесконечных циклов
-        console.log("Интерфейс «Эльфячьего Стикса» успешно инициализирован.");
-    } catch (err) {
-        console.error("Ошибка UI:", err);
-    }
-}
-
-// Запускаем UI один раз после полной загрузки страницы
-window.onload = updateUI;
 </script>
 
 </body>
