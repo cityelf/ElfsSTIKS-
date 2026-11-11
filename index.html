@@ -71,7 +71,6 @@
         }
         .btn-action:active { background: #8bbd45; color: #000; }
         
-        /* Стили админки кода */
         .admin-panel {
             margin-top: 20px;
             border-top: 1px dashed #2d4231;
@@ -79,7 +78,7 @@
         }
         .code-area { 
             width: 100%; 
-            height: 120px; 
+            height: 100px; 
             background: #050806; 
             border: 1px solid #a3e350; 
             color: #8bbd45; 
@@ -89,22 +88,11 @@
             font-family: monospace; 
             font-size: 11px; 
         }
-        .token-input {
-            width: 100%;
+        .status-box {
+            background: #142a14;
+            border: 1px solid #245a24;
+            color: #6bff6b;
             padding: 8px;
-            background: #1c1414;
-            border: 1px dashed #ff6b6b;
-            color: #fff;
-            border-radius: 6px;
-            margin-bottom: 10px;
-            box-sizing: border-box;
-            font-size: 12px;
-        }
-        .error-box {
-            background: #2a1414;
-            border: 1px solid #5a2424;
-            color: #ff6b6b;
-            padding: 10px;
             border-radius: 6px;
             margin: 10px 0;
             font-size: 13px;
@@ -136,114 +124,103 @@
 
     <a href="#" id="chat-link" class="btn" style="text-align:center; border-color: #557a3a;">🔗 ОТКРЫТЬ НАШ ЧАТ</a>
 
-    <!-- Быстрая админка кода прямо в телефоне -->
+    <!-- Панель управления сохранениями -->
     <div class="admin-panel">
-        <div id="admin-error" class="error-box"></div>
-        
-        <!-- Сюда вставляется новый токен один раз на сайте -->
-        <input type="password" id="user-token" class="token-input" placeholder="Вставьте ваш новый GitHub токен сюда...">
-        
-        <textarea id="code-editor" class="code-area" placeholder="Конфигурация квеста..."></textarea>
-        <button onclick="saveCodeDirectly()" class="btn btn-action">💾 Сохранить код прямо в GitHub</button>
+        <div id="save-status" class="status-box"></div>
+        <textarea id="code-editor" class="code-area" placeholder="Слепок данных сохранения..."></textarea>
+        <button onclick="applyManualSave()" class="btn btn-action" style="margin-bottom: 8px;">⚡ Применить код сохранения</button>
+        <button onclick="clearSave()" class="btn" style="background: #2a1414; border-color: #5a2424; color: #ff6b6b; text-align: center; font-size: 13px; padding: 6px;">🗑️ Сбросить прогресс игры</button>
     </div>
 </div>
 
 <script>
 document.getElementById('chat-link').href = window.location.href;
 
-// ИСПРАВЛЕННЫЕ НАСТРОЙКИ ВАШЕГО РЕПОЗИТОРИЯ
-const REPO_OWNER = "cityelf"; 
-const REPO_NAME = "ElfsSTIKS-"; 
-const FILE_PATH = "index.html"; 
+// Стартовое состояние
+const defaultState = { hp: 100, mp: 50, gold: 10, text: "Вы открываете глаза. Перед вами простирается туманная, светящаяся зеленым неоном река Стикс. В кармане плаща лежит горсть старых монет. Куда вы направитесь?" };
+let gameState = {};
 
-// Загружаем сохраненный токен из памяти телефона
-if (localStorage.getItem('stiks_key')) {
-    document.getElementById('user-token').value = localStorage.getItem('stiks_key');
+// Функция загрузки игры из памяти телефона
+function loadGame() {
+    const saved = localStorage.getItem('elf_stiks_save');
+    if (saved) {
+        try {
+            gameState = JSON.parse(saved);
+        } catch(e) {
+            gameState = { ...defaultState };
+        }
+    } else {
+        gameState = { ...defaultState };
+    }
+    updateUI();
 }
 
-let gameState = { hp: 100, mp: 50, gold: 10, location: "start" };
-document.getElementById('code-editor').value = JSON.stringify(gameState, null, 2);
+function updateUI() {
+    document.getElementById('hp').innerText = gameState.hp;
+    document.getElementById('mp').innerText = gameState.mp;
+    document.getElementById('gold').innerText = gameState.gold;
+    document.getElementById('quest-display').innerText = gameState.text;
+    document.getElementById('code-editor').value = JSON.stringify(gameState);
+}
+
+// Автоматическое мгновенное сохранение при каждом шаге
+function saveGame() {
+    localStorage.setItem('elf_stiks_save', JSON.stringify(gameState));
+    updateUI();
+}
 
 function move(loc) {
     if(loc === 'forest') {
         gameState.hp -= 10;
-        document.getElementById('quest-display').innerText = "Деревья шепчут древние заклинания. Вы потеряли 10 HP от магии леса.";
+        gameState.text = "Деревья шепчут древние заклинания. Вы потеряли 10 HP от магии леса, но нашли тропу.";
     } else if(loc === 'ruins') {
         gameState.gold += 15;
-        document.getElementById('quest-display').innerText = "В обломках колонны вы нашли кошель со старыми монетами (+15 золота)!";
+        gameState.text = "В обломках колонны вы нашли кошель со старыми монетами (+15 золота) !";
     } else if(loc === 'river') {
         gameState.mp += 20;
-        document.getElementById('quest-display').innerText = "Магические силы восстановились (+20 MP).";
+        gameState.text = "Вкус воды отдает металлом и вечностью. Ваши магические силы восстановились (+20 MP).";
     }
+    saveGame();
+}
+
+// Ручное применение кода (если скопировали слепок из чата)
+function applyManualSave() {
+    const inputData = document.getElementById("code-editor").value;
+    const statusBox = document.getElementById("save-status");
     
-    document.getElementById('hp').innerText = gameState.hp;
-    document.getElementById('mp').innerText = gameState.mp;
-    document.getElementById('gold').innerText = gameState.gold;
-    document.getElementById('code-editor').value = JSON.stringify(gameState, null, 2);
-}
-
-async function saveCodeDirectly() {
-    const editorData = document.getElementById("code-editor").value;
-    const inputToken = document.getElementById("user-token").value.trim();
-    const errBox = document.getElementById("admin-error");
-    errBox.style.display = "none";
-
-    if (!inputToken) {
-        errBox.innerText = "❌ Ошибка: Введите ваш новый токен в поле ввода!";
-        errBox.style.display = "block";
-        return;
-    }
-
-    localStorage.setItem('stiks_key', inputToken);
-
     try {
-        const url = `https://github.com{REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`;
-        
-        // Получаем SHA
-        const getFile = await fetch(url, {
-            method: "GET",
-            headers: { 
-                "Authorization": `Bearer ${inputToken}`,
-                "Accept": "application/vnd.github.v3+json"
-            }
-        });
-        
-        if (!getFile.ok) {
-            throw new Error(`GitHub вернул статус ${getFile.status}. Проверьте правильность токена.`);
-        }
-        const fileData = await getFile.json();
-        const sha = fileData.sha;
-
-        const base64Content = btoa(unescape(encodeURIComponent(editorData)));
-
-        // Отправляем коммит
-        const updateFile = await fetch(url, {
-            method: "PUT",
-            headers: {
-                "Authorization": `Bearer ${inputToken}`,
-                "Content-Type": "application/json",
-                "Accept": "application/vnd.github.v3+json"
-            },
-            body: JSON.stringify({
-                message: "⚡ Безопасное обновление через index.html",
-                content: base64Content,
-                sha: sha
-            })
-        });
-
-        if (updateFile.ok) {
-            alert("🚀 Изменения улетели на GitHub! Netlify обновит сайт через 15 секунд.");
-            setTimeout(() => window.location.reload(), 1500);
+        const parsed = JSON.parse(inputData);
+        if(parsed.hp !== undefined && parsed.gold !== undefined) {
+            gameState = parsed;
+            saveGame();
+            statusBox.innerText = "✅ Прогресс успешно изменён и сохранён!";
+            statusBox.style.display = "block";
+            statusBox.style.background = "#142a14";
+            statusBox.style.color = "#6bff6b";
         } else {
-            const errRes = await updateFile.json();
-            throw new Error(errRes.message || "Ошибка записи файла.");
+            throw new Error();
         }
-
-    } catch (err) {
-        errBox.innerText = "❌ Ошибка: " + err.message;
-        errBox.style.display = "block";
+    } catch(e) {
+        statusBox.innerText = "❌ Ошибка: Неверный формат кода сохранения!";
+        statusBox.style.display = "block";
+        statusBox.style.background = "#2a1414";
+        statusBox.style.color = "#ff6b6b";
     }
 }
+
+// Сброс игры
+function clearSave() {
+    if(confirm("Вы уверены, что хотите начать заново?")) {
+        localStorage.removeItem('elf_stiks_save');
+        gameState = { ...defaultState };
+        updateUI();
+        const statusBox = document.getElementById("save-status");
+        statusBox.style.display = "none";
+    }
+}
+
+// Запуск при старте страницы
+window.onload = loadGame;
 </script>
 
 </body>
