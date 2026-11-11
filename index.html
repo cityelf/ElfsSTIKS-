@@ -3,224 +3,132 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Эльфячий Стикс</title>
+    <title>Конструктор Проекта Стикс</title>
     <style>
-        body { 
-            background-color: #0f1410; 
-            color: #a3e350; 
-            font-family: sans-serif; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            min-height: 100vh; 
-            margin: 0; 
-            text-align: center; 
-        }
-        .game-card { 
-            background: #161f18; 
-            border: 2px solid #2d4231; 
-            padding: 20px; 
-            border-radius: 12px; 
-            box-shadow: 0 0 20px rgba(0,0,0,0.5); 
-            max-width: 400px; 
-            width: 90%; 
-            box-sizing: border-box;
-        }
-        .stats-bar {
-            display: flex;
-            justify-content: space-between;
-            background: #090d0a;
-            padding: 10px;
-            border-radius: 6px;
-            margin-bottom: 15px;
-            font-size: 14px;
-        }
-        .quest-text {
-            background: #090d0a;
-            border: 1px solid #2d4231;
-            padding: 15px;
-            border-radius: 8px;
-            text-align: left;
-            font-size: 14px;
-            line-height: 1.5;
-            color: #d1ebd5;
-            margin-bottom: 15px;
-        }
-        .btn { 
-            display: block; 
-            background: #1a261d; 
-            color: #a3e350; 
-            border: 1px solid #2d4231; 
-            padding: 12px; 
-            font-size: 15px; 
-            border-radius: 8px; 
-            text-decoration: none; 
-            margin-top: 10px; 
-            cursor: pointer; 
-            transition: all 0.2s ease; 
-            width: 100%;
-            box-sizing: border-box;
-            text-align: left;
-        }
-        .btn:active { background: #2d4231; }
-        .btn-action {
-            background: #a3e350;
-            color: #000;
-            font-weight: bold;
-            text-align: center;
-        }
-        .btn-action:active { background: #8bbd45; color: #000; }
-        
-        .admin-panel {
-            margin-top: 20px;
-            border-top: 1px dashed #2d4231;
-            padding-top: 15px;
-        }
-        .code-area { 
-            width: 100%; 
-            height: 100px; 
-            background: #050806; 
-            border: 1px solid #a3e350; 
-            color: #8bbd45; 
-            border-radius: 6px; 
-            padding: 8px; 
-            box-sizing: border-box; 
-            font-family: monospace; 
-            font-size: 11px; 
-        }
-        .status-box {
-            background: #142a14;
-            border: 1px solid #245a24;
-            color: #6bff6b;
-            padding: 8px;
-            border-radius: 6px;
-            margin: 10px 0;
-            font-size: 13px;
-            display: none;
-            text-align: left;
-        }
+        body { background-color: #0f1410; color: #a3e350; font-family: monospace; padding: 15px; margin: 0; }
+        .container { max-width: 500px; margin: 0 auto; background: #161f18; border: 2px solid #2d4231; padding: 20px; border-radius: 8px; box-shadow: 0 0 15px rgba(0,0,0,0.5); }
+        h2 { text-align: center; margin-top: 0; color: #00ffcc; font-size: 18px; }
+        .section { margin-bottom: 20px; padding: 10px; background: #090d0a; border: 1px solid #2d4231; }
+        .label { font-size: 12px; font-weight: bold; margin-bottom: 5px; color: #8bbd45; }
+        textarea { width: 100%; height: 120px; background: #000; border: 1px solid #2d4231; color: #a3e350; padding: 8px; box-sizing: border-box; resize: vertical; font-family: inherit; font-size: 12px; }
+        .btn { display: block; width: 100%; background: #253528; color: #a3e350; border: 1px solid #a3e350; padding: 12px; text-align: center; cursor: pointer; font-weight: bold; font-family: inherit; margin-top: 10px; box-sizing: border-box; }
+        .btn:active { background: #a3e350; color: #000; }
+        .preview-box { min-height: 80px; padding: 10px; background: #101410; border: 1px dashed #2d4231; margin-top: 10px; font-size: 14px; text-align: left; }
+        .btn-panel { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
     </style>
 </head>
 <body>
 
-<div class="game-card">
-    <h2>🧝 ЭЛЬФЯЧИЙ СТИКС</h2>
+<div class="container">
+    <h2>🎛️ ИНСТРУМЕНТ СБОРКИ СТИКСА</h2>
     
-    <div class="stats-bar">
-        <span>❤️ <span id="hp">100</span></span>
-        <span>✨ <span id="mp">50</span></span>
-        <span>🟡 <span id="gold">10</span></span>
+    <!-- Сюда вы будете вставлять новые куски из чата -->
+    <div class="section">
+        <div class="label">📥 Добавить новый кусок кода / данных:</div>
+        <textarea id="code-input" placeholder="Вставьте сюда новый кусок кода или логики из нашего чата..."></textarea>
+        <button onclick="injectChunk()" class="btn" style="background: #a3e350; color: #000;">⚡ Добавить в проект</button>
     </div>
 
-    <div id="quest-display" class="quest-text">
-        Вы открываете глаза. Перед вами простирается туманная, светящаяся зеленым неоном река Стикс. В кармане плаща лежит горсть старых монет. Куда вы направитесь?
+    <!-- Интерактивная зона для тестов на лету -->
+    <div class="section">
+        <div class="label">🖥️ Живое игровое ядро (Тест):</div>
+        <div id="game-text" class="preview-box">Проект пуст. Добавьте первый кусок кода выше.</div>
+        <div id="game-buttons" class="btn-panel"></div>
     </div>
 
-    <div id="choices-container">
-        <button class="btn" onclick="move('forest')">🌲 Идти в Шепчущий лес</button>
-        <button class="btn" onclick="move('ruins')">🏛️ Исследовать древние руины</button>
-        <button class="btn" onclick="move('river')">💧 Испить воды из реки</button>
-    </div>
-
-    <a href="#" id="chat-link" class="btn" style="text-align:center; border-color: #557a3a;">🔗 ОТКРЫТЬ НАШ ЧАТ</a>
-
-    <!-- Панель управления сохранениями -->
-    <div class="admin-panel">
-        <div id="save-status" class="status-box"></div>
-        <textarea id="code-editor" class="code-area" placeholder="Слепок данных сохранения..."></textarea>
-        <button onclick="applyManualSave()" class="btn btn-action" style="margin-bottom: 8px;">⚡ Применить код сохранения</button>
-        <button onclick="clearSave()" class="btn" style="background: #2a1414; border-color: #5a2424; color: #ff6b6b; text-align: center; font-size: 13px; padding: 6px;">🗑️ Сбросить прогресс игры</button>
-    </div>
+    <!-- Кнопка сброса кэша -->
+    <button onclick="resetBuilder()" class="btn" style="background: transparent; border-color: #5a2424; color: #ff6b6b; font-size: 11px; padding: 5px;">🗑️ Очистить сборщик</button>
 </div>
 
 <script>
-document.getElementById('chat-link').href = window.location.href;
+// Внутреннее хранилище собранной игры в памяти телефона
+let projectData = {
+    core: null,
+    scenes: {},
+    currentScene: null
+};
 
-// Стартовое состояние
-const defaultState = { hp: 100, mp: 50, gold: 10, text: "Вы открываете глаза. Перед вами простирается туманная, светящаяся зеленым неоном река Стикс. В кармане плаща лежит горсть старых монет. Куда вы направитесь?" };
-let gameState = {};
-
-// Функция загрузки игры из памяти телефона
-function loadGame() {
-    const saved = localStorage.getItem('elf_stiks_save');
+// Загрузка сохраненной сборки при старте страницы
+window.onload = function() {
+    const saved = localStorage.getItem('stiks_builder_data');
     if (saved) {
         try {
-            gameState = JSON.parse(saved);
+            projectData = JSON.parse(saved);
+            runEngine();
         } catch(e) {
-            gameState = { ...defaultState };
+            projectData = { core: null, scenes: {}, currentScene: null };
         }
-    } else {
-        gameState = { ...defaultState };
     }
-    updateUI();
-}
+};
 
-function updateUI() {
-    document.getElementById('hp').innerText = gameState.hp;
-    document.getElementById('mp').innerText = gameState.mp;
-    document.getElementById('gold').innerText = gameState.gold;
-    document.getElementById('quest-display').innerText = gameState.text;
-    document.getElementById('code-editor').value = JSON.stringify(gameState);
-}
+// Функция обработки вставляемых из чата кусков кода
+function injectChunk() {
+    const input = document.getElementById('code-input').value.trim();
+    if (!input) return;
 
-// Автоматическое мгновенное сохранение при каждом шаге
-function saveGame() {
-    localStorage.setItem('elf_stiks_save', JSON.stringify(gameState));
-    updateUI();
-}
-
-function move(loc) {
-    if(loc === 'forest') {
-        gameState.hp -= 10;
-        gameState.text = "Деревья шепчут древние заклинания. Вы потеряли 10 HP от магии леса, но нашли тропу.";
-    } else if(loc === 'ruins') {
-        gameState.gold += 15;
-        gameState.text = "В обломках колонны вы нашли кошель со старыми монетами (+15 золота) !";
-    } else if(loc === 'river') {
-        gameState.mp += 20;
-        gameState.text = "Вкус воды отдает металлом и вечностью. Ваши магические силы восстановились (+20 MP).";
-    }
-    saveGame();
-}
-
-// Ручное применение кода (если скопировали слепок из чата)
-function applyManualSave() {
-    const inputData = document.getElementById("code-editor").value;
-    const statusBox = document.getElementById("save-status");
-    
     try {
-        const parsed = JSON.parse(inputData);
-        if(parsed.hp !== undefined && parsed.gold !== undefined) {
-            gameState = parsed;
-            saveGame();
-            statusBox.innerText = "✅ Прогресс успешно изменён и сохранён!";
-            statusBox.style.display = "block";
-            statusBox.style.background = "#142a14";
-            statusBox.style.color = "#6bff6b";
-        } else {
-            throw new Error();
+        const chunk = JSON.parse(input);
+        
+        // Если это кусок с системными настройками ядра
+        if (chunk.type === "core") {
+            projectData.core = chunk.data;
+            if (!projectData.currentScene) projectData.currentScene = chunk.data.startScene;
+        } 
+        // Если это кусок новой локации/сцены
+        else if (chunk.type === "scene") {
+            projectData.scenes[chunk.id] = chunk.data;
         }
-    } catch(e) {
-        statusBox.innerText = "❌ Ошибка: Неверный формат кода сохранения!";
-        statusBox.style.display = "block";
-        statusBox.style.background = "#2a1414";
-        statusBox.style.color = "#ff6b6b";
+
+        // Сохраняем обновленную сборку в память телефона
+        localStorage.setItem('stiks_builder_data', JSON.stringify(projectData));
+        document.getElementById('code-input').value = "";
+        alert("✅ Кусок успешно добавлен в итоговую сборку!");
+        runEngine();
+
+    } catch (e) {
+        alert("❌ Ошибка: Вставленный текст не является правильным куском данных квеста.");
     }
 }
 
-// Сброс игры
-function clearSave() {
-    if(confirm("Вы уверены, что хотите начать заново?")) {
-        localStorage.removeItem('elf_stiks_save');
-        gameState = { ...defaultState };
-        updateUI();
-        const statusBox = document.getElementById("save-status");
-        statusBox.style.display = "none";
+// Движок, который собирает и запускает игру на ходу из кусочков
+function runEngine() {
+    if (!projectData.core) {
+        document.getElementById('game-text').innerText = "Ядро игры не загружено. Скиньте первый базовый кусок кода.";
+        return;
     }
+
+    const sceneId = projectData.currentScene;
+    const scene = projectData.scenes[sceneId];
+
+    if (!scene) {
+        document.getElementById('game-text').innerText = `Ядро работает. Локация "${sceneId}" пока пуста. Скиньте кусок этой сцены из чата.`;
+        document.getElementById('game-buttons').innerHTML = "";
+        return;
+    }
+
+    // Отрисовка
+    document.getElementById('game-text').innerText = scene.text;
+    
+    let btnHtml = "";
+    scene.choices.forEach(choice => {
+        btnHtml += `<button class="btn" onclick="changeScene('${choice.target}')">${choice.text}</button>`;
+    });
+    document.getElementById('game-buttons').innerHTML = btnHtml;
 }
 
-// Запуск при старте страницы
-window.onload = loadGame;
+function changeScene(targetId) {
+    projectData.currentScene = targetId;
+    localStorage.setItem('stiks_builder_data', JSON.stringify(projectData));
+    runEngine();
+}
+
+function resetBuilder() {
+    if (confirm("Сбросить всю сборку?")) {
+        localStorage.removeItem('stiks_builder_data');
+        projectData = { core: null, scenes: {}, currentScene: null };
+        location.reload();
+    }
+}
 </script>
 
 </body>
