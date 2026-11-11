@@ -134,19 +134,19 @@
 </div>
 
 <script>
-// Ссылка на чат
+// Автоматическая привязка ссылки на текущий диалог
 document.getElementById('chat-link').href = window.location.href;
 
-// Токен и параметры вашего репозитория (Заполните один раз!)
-const GITHUB_TOKEN = "ВАШ_STIKSKEY_ТОКЕН"; 
-const REPO_OWNER = "ВАШ_НИК_НА_GITHUB";
-const REPO_NAME = "НАЗВАНИЕ_РЕПОЗИТОРИЯ";
-const FILE_PATH = "stiks_game.html"; // Имя этого файла в репозитории
+// НАСТРОЙКИ РЕПОЗИТОРИЯ
+const GITHUB_TOKEN = "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"; 
+const REPO_OWNER = "cityelf"; 
+const REPO_NAME = "cross"; 
+const FILE_PATH = "stiks_game.html"; 
 
-// Текущее состояние игры (квест-система)
+// Текущее состояние игры
 let gameState = { hp: 100, mp: 50, gold: 10, location: "start" };
 
-// Синхронизируем состояние с текстовым полем при старте
+// Инициализация текстового поля при загрузке страницы
 document.getElementById('code-editor').value = JSON.stringify(gameState, null, 2);
 
 function move(loc) {
@@ -161,46 +161,38 @@ function move(loc) {
         document.getElementById('quest-display').innerText = "Вкус воды отдает металлом и вечностью. Ваши магические силы восстановились (+20 MP).";
     }
     
-    // Обновляем интерфейс
+    // Синхронизация с UI
     document.getElementById('hp').innerText = gameState.hp;
     document.getElementById('mp').innerText = gameState.mp;
     document.getElementById('gold').innerText = gameState.gold;
     
-    // Пишем изменения в редактор
+    // Обновление содержимого в редакторе
     document.getElementById('code-editor').value = JSON.stringify(gameState, null, 2);
 }
 
-// ГЛАВНАЯ ФУНКЦИЯ: Публикация изменений без прыжков по сайтам
+// Прямая отправка изменений на GitHub API без перезахода на другие платформы
 async function saveCodeDirectly() {
     const editorData = document.getElementById("code-editor").value;
     const errBox = document.getElementById("admin-error");
     errBox.style.display = "none";
 
-    if (GITHUB_TOKEN === "ВАШ_STIKSKEY_ТОКЕН") {
-        errBox.innerText = "❌ Ошибка: Сначала пропишите ваш GITHUB_TOKEN внутри тега <script> кода!";
-        errBox.style.display = "block";
-        return;
-    }
-
     try {
-        // 1. Получаем SHA предыдущего файла (требование GitHub API)
+        // 1. Получаем SHA актуальной версии файла из репозитория
         const url = `https://github.com{REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`;
         const getFile = await fetch(url, {
             headers: { "Authorization": `token ${GITHUB_TOKEN}` }
         });
         
-        if (!getFile.ok) throw new Error("Не удалось получить данные файла с GitHub");
+        if (!getFile.ok) {
+            throw new Error("Не удалось получить SHA файла. Проверьте правильность авторизации и токена.");
+        }
         const fileData = await getFile.json();
         const sha = fileData.sha;
 
-        // Если вы изменили JSON состояния — сохраняем как состояние. 
-        // Если вы решите переписать весь HTML код — скрипт отправит его целиком.
-        let finalContent = editorData;
-        
-        // Переводим текст в Base64 для GitHub API
-        const base64Content = btoa(unescape(encodeURIComponent(finalContent)));
+        // Кодируем данные из текстового поля в формат Base64
+        const base64Content = btoa(unescape(encodeURIComponent(editorData)));
 
-        // 2. Отправляем обновление прямо на GitHub
+        // 2. Отправляем обновленный контент обратно в ветку GitHub
         const updateFile = await fetch(url, {
             method: "PUT",
             headers: {
@@ -208,18 +200,18 @@ async function saveCodeDirectly() {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                message: "⚡ Быстрое обновление кода из мобильной админки",
+                message: "⚡ Быстрое обновление состояния/кода через мобильную админку",
                 content: base64Content,
                 sha: sha
             })
         });
 
         if (updateFile.ok) {
-            alert("🚀 Код успешно отправлен на GitHub! Netlify обновит сайт через 10-15 секунд.");
-            setTimeout(() => window.location.reload(), 2000);
+            alert("🚀 Изменения успешно отправлены в ваш GitHub! Netlify обновит сайт в течение 15 секунд.");
+            setTimeout(() => window.location.reload(), 1500);
         } else {
             const errRes = await updateFile.json();
-            throw new Error(errRes.message || "Ошибка записи");
+            throw new Error(errRes.message || "Ошибка записи файла.");
         }
 
     } catch (err) {
