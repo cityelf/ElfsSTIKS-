@@ -140,7 +140,7 @@
     <div class="admin-panel">
         <div id="admin-error" class="error-box"></div>
         
-        <!-- Сюда вы вставите токен ОДИН раз прямо на работающем сайте -->
+        <!-- Сюда вставляется новый токен один раз на сайте -->
         <input type="password" id="user-token" class="token-input" placeholder="Вставьте ваш новый GitHub токен сюда...">
         
         <textarea id="code-editor" class="code-area" placeholder="Конфигурация квеста..."></textarea>
@@ -151,14 +151,12 @@
 <script>
 document.getElementById('chat-link').href = window.location.href;
 
-// Настройки репозитория (Здесь БЕЗОПАСНО, токена тут НЕТ!)
-// ЗАМЕНИТЕ НАСТРОЙКИ НА ЭТИ ТОЧНЫЕ СТРОКИ:
+// ИСПРАВЛЕННЫЕ НАСТРОЙКИ ВАШЕГО РЕПОЗИТОРИЯ
 const REPO_OWNER = "cityelf"; 
-const REPO_NAME = "ElfsSTIKS-"; // Регистр и дефис важны!
-const FILE_PATH = "index.html";  // Файл называется index.html
+const REPO_NAME = "ElfsSTIKS-"; 
+const FILE_PATH = "index.html"; 
 
-
-// Загружаем сохраненный токен из памяти телефона, если он там есть
+// Загружаем сохраненный токен из памяти телефона
 if (localStorage.getItem('stiks_key')) {
     document.getElementById('user-token').value = localStorage.getItem('stiks_key');
 }
@@ -196,12 +194,12 @@ async function saveCodeDirectly() {
         return;
     }
 
-    // Запоминаем токен локально в браузере, чтобы не вводить каждый раз
     localStorage.setItem('stiks_key', inputToken);
 
     try {
         const url = `https://github.com{REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`;
         
+        // Получаем SHA
         const getFile = await fetch(url, {
             method: "GET",
             headers: { 
@@ -211,13 +209,14 @@ async function saveCodeDirectly() {
         });
         
         if (!getFile.ok) {
-            throw new Error(`Не удалось связаться с GitHub (Статус: ${getFile.status}). Возможно, токен неверный или удален.`);
+            throw new Error(`GitHub вернул статус ${getFile.status}. Проверьте правильность токена.`);
         }
         const fileData = await getFile.json();
         const sha = fileData.sha;
 
         const base64Content = btoa(unescape(encodeURIComponent(editorData)));
 
+        // Отправляем коммит
         const updateFile = await fetch(url, {
             method: "PUT",
             headers: {
@@ -226,7 +225,7 @@ async function saveCodeDirectly() {
                 "Accept": "application/vnd.github.v3+json"
             },
             body: JSON.stringify({
-                message: "⚡ Безопасное обновление через localStorage",
+                message: "⚡ Безопасное обновление через index.html",
                 content: base64Content,
                 sha: sha
             })
