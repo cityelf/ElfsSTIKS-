@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Эльфячий Стикс</title>
+</head>
+<body style="background:#0f1410; color:#a3e350; font-family:sans-serif; text-align:center; padding-top:50px;">
+    <h2>🧝 ЭЛЬФЯЧИЙ СТИКС</h2>
+    <p>Ваша точка сохранения проекта</p>
+    <br>
+    <a href="#" id="chat-link" style="display:inline-block; background:#253528; color:#a3e350; border:1px solid #a3e350; padding:15px; text-decoration:none; font-weight:bold; border-radius:8px;">🔗 ОТКРЫТЬ НАШ ЧАТ</a>
+    <br><br>
+    <textarea id="save-data" style="width:80%; height:60px; background:#090d0a; color:#8bbd45; border:1px solid #2d4231;" readonly>{"project":"Эльфячий Стикс","status":"Сохранено"}</textarea>
+    <br><br>
+    <button onclick="copySaveText()" style="background:transparent; border:1px dashed #2d4231; color:#8bbd45; padding:10px;">📋 Скопировать сохранение</button>
+    <script>
+        document.getElementById('chat-link').href = window.location.href;
+        function copySaveText() {
+            const copyText = document.getElementById("save-data");
+            copyText.select();
+            copyText.setSelectionRange(0, 99999);
+            navigator.clipboard.writeText(copyText.value);
+            alert("Скопировано!");
+        }
+    </script>
+</body>
+</html>
