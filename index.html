@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Эльфячий Стикс — RPG</title>
+    <title>Эльфячий Стикс — Панель Управления</title>
     <style>
         body {
             background-color: #0f1410;
@@ -27,28 +27,42 @@
             max-width: 420px;
             width: 90%;
         }
-        .stats-bar {
-            display: flex;
-            justify-content: space-around;
-            background: #090d0a;
-            border: 1px solid #2d4231;
-            border-radius: 6px;
-            padding: 8px;
-            margin-bottom: 15px;
-            font-weight: bold;
-            font-size: 14px;
-        }
         .game-log {
             background: #090d0a;
             border: 1px solid #2d4231;
             border-radius: 6px;
             padding: 15px;
             text-align: left;
-            min-height: 100px;
+            min-height: 60px;
             margin-bottom: 15px;
-            font-size: 15px;
+            font-size: 14px;
             color: #d1ebd5;
             line-height: 1.4;
+        }
+        .input-area {
+            width: 100%;
+            height: 120px;
+            background: #090d0a;
+            border: 1px solid #2d4231;
+            color: #a3e350;
+            border-radius: 6px;
+            padding: 10px;
+            box-sizing: border-box;
+            font-family: monospace;
+            font-size: 11px;
+            resize: none;
+            margin-bottom: 15px;
+        }
+        .token-area {
+            width: 100%;
+            background: #1a241c;
+            border: 1px dashed #2d4231;
+            color: #8bbd45;
+            border-radius: 6px;
+            padding: 8px;
+            box-sizing: border-box;
+            font-size: 12px;
+            margin-bottom: 15px;
         }
         .btn {
             display: block;
@@ -56,7 +70,7 @@
             background: #253528;
             color: #a3e350;
             border: 1px solid #a3e350;
-            padding: 12px 0;
+            padding: 14px 0;
             font-size: 15px;
             font-weight: bold;
             border-radius: 8px;
@@ -64,29 +78,9 @@
             margin-top: 10px;
             cursor: pointer;
             box-sizing: border-box;
-            transition: background 0.2s;
         }
         .btn:active { background: #a3e350; color: #000; }
-        .btn-choice {
-            background: #1c2b20;
-            border-color: #8bbd45;
-            text-align: left;
-            padding-left: 15px;
-        }
-        .save-area {
-            width: 100%;
-            height: 50px;
-            background: #090d0a;
-            border: 1px solid #2d4231;
-            color: #8bbd45;
-            border-radius: 6px;
-            margin-top: 15px;
-            padding: 6px;
-            box-sizing: border-box;
-            font-family: monospace;
-            font-size: 10px;
-            resize: none;
-        }
+        .btn-action { background: #a3e350; color: #000; border: none; }
     </style>
 </head>
 <body>
@@ -94,116 +88,95 @@
     <div class="portal-card">
         <h2>🧝 ЭЛЬФЯЧИЙ СТИКС</h2>
         
-        <div class="stats-bar">
-            <span>❤️ <span id="hp">100</span></span>
-            <span>✨ <span id="mp">50</span></span>
-            <span>🪙 <span id="gold">10</span></span>
+        <div id="status-log" class="game-log">
+            ⚙️ <b>Безопасный режим консоли.</b><br>Введите ваш GitHub токен ниже (он сохранится локально на телефоне), вставьте код игры и обновите сайт.
         </div>
         
-        <div id="game-text" class="game-log">
-            Вы открываете глаза. Перед вами простирается туманная, светящаяся зеленым неоном река Стикс. В кармане плаща лежит горсть старых монет. Куда вы направитесь?
-        </div>
+        <!-- Скрытое поле для токена (хранится локально) -->
+        <input type="password" id="token-input" class="token-area" placeholder="Вставьте ваш ghp_... токен сюда">
         
-        <div id="choices-container">
-            <button onclick="chooseAction('forest')" class="btn btn-choice">🌲 Идти в Шепчущий лес</button>
-            <button onclick="chooseAction('ruins')" class="btn btn-choice">🏛 Исследовать древние руины</button>
-            <button onclick="chooseAction('drink')" class="btn btn-choice">💧 Испить воды из реки</button>
-        </div>
+        <!-- Окно для вставки нового кода от ИИ -->
+        <textarea id="code-input" class="input-area" placeholder="Вставьте сюда полный HTML-код игры из чата..."></textarea>
         
-        <!-- Исправленная универсальная ссылка для мобильного чата -->
-        <a href="https://google.com" target="_blank" class="btn" style="margin-top: 20px; background: #2d4231;">🔗 ОТКРЫТЬ НАШ ЧАТ</a>
-        
-        <textarea id="save-data" class="save-area" readonly></textarea>
-        <button onclick="copySaveText()" id="copy-btn" class="btn" style="font-size:13px; padding:8px 0; border-style:dashed;">📋 Скопировать код сохранения</button>
+        <!-- Кнопка обновления -->
+        <button onclick="autoUploadCode()" id="upload-btn" class="btn btn-action">⚡ Применить и обновить сайт</button>
     </div>
 
     <script>
-        let gameState = {
-            hp: 100,
-            mp: 50,
-            gold: 10,
-            location: "start"
-        };
+        const REPO_OWNER = "cityelf";       
+        const REPO_NAME = "ElfsSTIKS-HTML"; 
+        const FILE_PATH = "index.html";
 
-        function updateUI() {
-            document.getElementById("hp").innerText = gameState.hp;
-            document.getElementById("mp").innerText = gameState.mp;
-            document.getElementById("gold").innerText = gameState.gold;
-            document.getElementById("save-data").value = JSON.stringify(gameState);
+        // Подгружаем токен из памяти телефона, если он уже вводился ранее
+        if (localStorage.getItem("stiks_token")) {
+            document.getElementById("token-input").value = localStorage.getItem("stiks_token");
         }
 
-        function chooseAction(choice) {
-            const textElement = document.getElementById("game-text");
-            const choicesElement = document.getElementById("choices-container");
+        async function autoUploadCode() {
+            const tokenField = document.getElementById("token-input").value.trim();
+            const newCode = document.getElementById("code-input").value.trim();
+            const statusLog = document.getElementById("status-log");
+            const btn = document.getElementById("upload-btn");
 
-            if (choice === 'forest') {
-                gameState.location = "forest";
-                gameState.gold += 5;
-                textElement.innerHTML = "🌲 Вы углубляетесь в Шепчущий лес. Среди корней векового дуба вы находите старый кошель и получаете <b>+5 монет</b>! Однако из чащи слышится странный рык...";
-                choicesElement.innerHTML = `
-                    <button onclick="chooseAction('fight')" class="btn btn-choice">⚔️ Принять бой</button>
-                    <button onclick="chooseAction('run')" class="btn btn-choice">🏃 Бежать назад к реке</button>
-                `;
-            } 
-            else if (choice === 'ruins') {
-                gameState.location = "ruins";
-                gameState.mp += 20;
-                textElement.innerHTML = "🏛 Руины дышат древней магией. Вы касаетесь алтаря, и ваши магические силы восстанавливаются: <b>+20 маны</b>. На алтаре лежит светящийся амулет.";
-                choicesElement.innerHTML = `
-                    <button onclick="chooseAction('take_amulet')" class="btn btn-choice">💎 Взять амулет</button>
-                    <button onclick="chooseAction('start_over')" class="btn btn-choice">⬅️ Вернуться назад</button>
-                `;
-            } 
-            else if (choice === 'drink') {
-                gameState.location = "dead";
-                gameState.hp = 0;
-                textElement.innerHTML = "💧 Воды Стикса коварны. Ледяной поток сковывает ваши движения. Вы теряете сознание... <b>Игра окончена.</b>";
-                choicesElement.innerHTML = `
-                    <button onclick="chooseAction('start_over')" class="btn btn-choice">🔄 Начать заново</button>
-                `;
+            if (!tokenField) {
+                alert("Пожалуйста, введите ваш GitHub токен!");
+                return;
             }
-            else if (choice === 'run' || choice === 'start_over') {
-                gameState.hp = 100;
-                gameState.mp = 50;
-                gameState.gold = 10;
-                gameState.location = "start";
-                textElement.innerHTML = "Вы снова стоите у туманных берегов реки Стикс. Прошлое кажется лишь сном. Куда пойдете теперь?";
-                choicesElement.innerHTML = `
-                    <button onclick="chooseAction('forest')" class="btn btn-choice">🌲 Идти в Шепчущий лес</button>
-                    <button onclick="chooseAction('ruins')" class="btn btn-choice">🏛 Исследовать древние руины</button>
-                    <button onclick="chooseAction('drink')" class="btn btn-choice">💧 Испить воды из реки</button>
-                `;
-            }
-            else if (choice === 'fight') {
-                gameState.hp -= 30;
-                textElement.innerHTML = "⚔️ Вы отважно сражаетесь с лесным монстром! Вы побеждаете, но теряете <b>30 здоровья</b>. Зато путь вглубь леса теперь свободен.";
-                choicesElement.innerHTML = `
-                    <button onclick="chooseAction('start_over')" class="btn btn-choice">🔄 Вернуться к началу победителем</button>
-                `;
-            }
-            else if (choice === 'take_amulet') {
-                gameState.gold += 20;
-                textElement.innerHTML = "💎 Амулет оказывается инкрустирован редкими камнями. Вы забираете его, чтобы позже выгодно продать! Прогресс зафиксирован.";
-                choicesElement.innerHTML = `
-                    <button onclick="chooseAction('start_over')" class="btn btn-choice">🔄 Вернуться на перепутье</button>
-                `;
+            if (!newCode) {
+                alert("Поле кода пустое!");
+                return;
             }
 
-            updateUI();
+            // Сохраняем токен в память браузера телефона
+            localStorage.setItem("stiks_token", tokenField);
+
+            btn.disabled = true;
+            btn.innerText = "⏳ Авто-обновление файла...";
+            statusLog.innerHTML = "🔄 Безопасно передаю изменения в ваш репозиторий...";
+
+            try {
+                const url = `https://github.com{REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`;
+                const getResponse = await fetch(url, {
+                    headers: { "Authorization": `token ${tokenField}` }
+                });
+
+                if (!getResponse.ok) throw new Error("Неверный токен или ошибка доступа к репозиторию.");
+                const fileData = await getResponse.json();
+                const fileSha = fileData.sha;
+
+                const encodedCode = btoa(encodeURIComponent(newCode).replace(/%([0-9A-F]{2})/g, function(match, p1) {
+                    return String.fromCharCode(parseInt(p1, 16));
+                }));
+
+                const putResponse = await fetch(url, {
+                    method: "PUT",
+                    headers: {
+                        "Authorization": `token ${tokenField}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        message: "Обновление игры из безопасной консоли Стикса",
+                        content: encodedCode,
+                        sha: fileSha
+                    })
+                });
+
+                if (putResponse.ok) {
+                    statusLog.innerHTML = "✅ <b>Сайт успешно переписан!</b><br>Netlify применит изменения через 10 секунд. Теперь вы можете вставлять любой игровой код прямо отсюда.";
+                    document.getElementById("code-input").value = "";
+                } else {
+                    const errData = await putResponse.json();
+                    throw new Error(errData.message || "Ошибка отправки.");
+                }
+
+            } catch (error) {
+                statusLog.innerHTML = `❌ <b>Ошибка:</b><br>${error.message}`;
+                console.error(error);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "⚡ Применить и обновить сайт";
+            }
         }
-
-        function copySaveText() {
-            const copyText = document.getElementById("save-data");
-            copyText.select();
-            copyText.setSelectionRange(0, 99999);
-            navigator.clipboard.writeText(copyText.value);
-            
-            const btn = document.getElementById('copy-btn');
-            btn.innerHTML = "✅ Код скопирован!";
-            setTimeout(() => btn.innerHTML = "📋 Скопировать код сохранения", 2000);
-        }
-
-        updateUI();
     </script>
 
 </body>
