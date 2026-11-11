@@ -152,9 +152,11 @@
 document.getElementById('chat-link').href = window.location.href;
 
 // Настройки репозитория (Здесь БЕЗОПАСНО, токена тут НЕТ!)
+// ЗАМЕНИТЕ НАСТРОЙКИ НА ЭТИ ТОЧНЫЕ СТРОКИ:
 const REPO_OWNER = "cityelf"; 
-const REPO_NAME = "cross"; 
-const FILE_PATH = "stiks_game.html"; 
+const REPO_NAME = "ElfsSTIKS-"; // Регистр и дефис важны!
+const FILE_PATH = "index.html";  // Файл называется index.html
+
 
 // Загружаем сохраненный токен из памяти телефона, если он там есть
 if (localStorage.getItem('stiks_key')) {
