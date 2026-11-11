@@ -6,14 +6,15 @@
     <title>Конструктор Проекта Стикс</title>
     <style>
         body { background-color: #0f1410; color: #a3e350; font-family: monospace; padding: 15px; margin: 0; }
-        .container { max-width: 500px; margin: 0 auto; background: #161f18; border: 2px solid #2d4231; padding: 20px; border-radius: 8px; box-shadow: 0 0 15px rgba(0,0,0,0.5); }
+        .container { max-width: 500px; margin: 0 auto; background: #161f18; border: 2px solid #2d4231; padding: 20px; border-radius: 8px; box-shadow: 0 0 15px rgba(0,0,0,0.5); box-sizing: border-box; }
         h2 { text-align: center; margin-top: 0; color: #00ffcc; font-size: 18px; }
         .section { margin-bottom: 20px; padding: 10px; background: #090d0a; border: 1px solid #2d4231; }
         .label { font-size: 12px; font-weight: bold; margin-bottom: 5px; color: #8bbd45; }
         textarea { width: 100%; height: 120px; background: #000; border: 1px solid #2d4231; color: #a3e350; padding: 8px; box-sizing: border-box; resize: vertical; font-family: inherit; font-size: 12px; }
         .btn { display: block; width: 100%; background: #253528; color: #a3e350; border: 1px solid #a3e350; padding: 12px; text-align: center; cursor: pointer; font-weight: bold; font-family: inherit; margin-top: 10px; box-sizing: border-box; }
         .btn:active { background: #a3e350; color: #000; }
-        .preview-box { min-height: 80px; padding: 10px; background: #101410; border: 1px dashed #2d4231; margin-top: 10px; font-size: 14px; text-align: left; }
+        .btn-backup { background: #172a3a; border-color: #00ffcc; color: #00ffcc; }
+        .preview-box { min-height: 80px; padding: 10px; background: #101410; border: 1px dashed #2d4231; margin-top: 10px; font-size: 14px; text-align: left; line-height: 1.4; }
         .btn-panel { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
     </style>
 </head>
@@ -22,33 +23,42 @@
 <div class="container">
     <h2>🎛️ ИНСТРУМЕНТ СБОРКИ СТИКСА</h2>
     
-    <!-- Сюда вы будете вставлять новые куски из чата -->
+    <!-- Поле ввода для кусков кода и бэкапов -->
     <div class="section">
-        <div class="label">📥 Добавить новый кусок кода / данных:</div>
-        <textarea id="code-input" placeholder="Вставьте сюда новый кусок кода или логики из нашего чата..."></textarea>
-        <button onclick="injectChunk()" class="btn" style="background: #a3e350; color: #000;">⚡ Добавить в проект</button>
+        <div class="label">📥 Окно данных (Вставка кусков / Импорт бэкапа):</div>
+        <textarea id="code-input" placeholder="Вставьте сюда кусок кода из чата или полный текст вашего бэкапа..."></textarea>
+        
+        <button onclick="injectChunk()" class="btn" style="background: #a3e350; color: #000;">⚡ Добавить кусок в проект</button>
+        
+        <div style="display: flex; gap: 8px; margin-top: 8px;">
+            <button onclick="exportProject()" class="btn btn-backup" style="margin-top:0; flex: 1;">📋 Начать Бэкап</button>
+            <button onclick="importProject()" class="btn" style="margin-top:0; flex: 1; background: #1a261a; border-color: #446644;">📤 Загрузить Бэкап</button>
+        </div>
     </div>
 
-    <!-- Интерактивная зона для тестов на лету -->
+    <!-- Интерактивная зона для тестов -->
     <div class="section">
         <div class="label">🖥️ Живое игровое ядро (Тест):</div>
         <div id="game-text" class="preview-box">Проект пуст. Добавьте первый кусок кода выше.</div>
         <div id="game-buttons" class="btn-panel"></div>
     </div>
 
-    <!-- Кнопка сброса кэша -->
     <button onclick="resetBuilder()" class="btn" style="background: transparent; border-color: #5a2424; color: #ff6b6b; font-size: 11px; padding: 5px;">🗑️ Очистить сборщик</button>
 </div>
 
 <script>
-// Внутреннее хранилище собранной игры в памяти телефона
+document.addEventListener('DOMContentLoaded', () => {
+    // Автоподстановка ссылки на чат, если кнопка будет добавлена
+    const chatLink = document.getElementById('chat-link');
+    if (chatLink) chatLink.href = window.location.href;
+});
+
 let projectData = {
     core: null,
     scenes: {},
     currentScene: null
 };
 
-// Загрузка сохраненной сборки при старте страницы
 window.onload = function() {
     const saved = localStorage.getItem('stiks_builder_data');
     if (saved) {
@@ -61,7 +71,6 @@ window.onload = function() {
     }
 };
 
-// Функция обработки вставляемых из чата кусков кода
 function injectChunk() {
     const input = document.getElementById('code-input').value.trim();
     if (!input) return;
@@ -69,31 +78,74 @@ function injectChunk() {
     try {
         const chunk = JSON.parse(input);
         
-        // Если это кусок с системными настройками ядра
         if (chunk.type === "core") {
             projectData.core = chunk.data;
             if (!projectData.currentScene) projectData.currentScene = chunk.data.startScene;
         } 
-        // Если это кусок новой локации/сцены
         else if (chunk.type === "scene") {
             projectData.scenes[chunk.id] = chunk.data;
+        } else {
+            alert("⚠️ Этот JSON не является игровым куском (тип не распознан).");
+            return;
         }
 
-        // Сохраняем обновленную сборку в память телефона
-        localStorage.setItem('stiks_builder_data', JSON.stringify(projectData));
+        saveToStorage();
         document.getElementById('code-input').value = "";
         alert("✅ Кусок успешно добавлен в итоговую сборку!");
         runEngine();
-
     } catch (e) {
-        alert("❌ Ошибка: Вставленный текст не является правильным куском данных квеста.");
+        alert("❌ Ошибка: Неверный формат JSON-куска.");
     }
 }
 
-// Движок, который собирает и запускает игру на ходу из кусочков
+// ФУНКЦИИ СИСТЕМЫ БЭКАПА
+function exportProject() {
+    if (!projectData.core && Object.keys(projectData.scenes).length === 0) {
+        alert("Проект пуст, нечего бэкапить.");
+        return;
+    }
+    const backupText = JSON.stringify(projectData, null, 2);
+    const textarea = document.getElementById('code-input');
+    textarea.value = backupText;
+    textarea.select();
+    textarea.setSelectionRange(0, 99999);
+    
+    try {
+        navigator.clipboard.writeText(backupText);
+        alert("🚀 Бэкап сгенерирован и автоматически скопирован в буфер обмена телефона! Сохраните его в заметки.");
+    } catch (err) {
+        alert("Бэкап выведен в текстовое поле. Скопируйте его вручную.");
+    }
+}
+
+function importProject() {
+    const input = document.getElementById('code-input').value.trim();
+    if (!input) { alert("Вставьте текст бэкапа в окно выше!"); return; }
+
+    try {
+        const parsed = JSON.parse(input);
+        if (parsed.scenes !== undefined) {
+            projectData = parsed;
+            saveToStorage();
+            document.getElementById('code-input').value = "";
+            alert("📥 Прогресс разработки успешно восстановлен из бэкапа!");
+            runEngine();
+        } else {
+            alert("❌ Это кусок отдельной сцены, а не полный файл бэкапа.");
+        }
+    } catch(e) {
+        alert("❌ Ошибка дешифровки: Неверный формат текста бэкапа.");
+    }
+}
+
+function saveToStorage() {
+    localStorage.setItem('stiks_builder_data', JSON.stringify(projectData));
+}
+
 function runEngine() {
     if (!projectData.core) {
         document.getElementById('game-text').innerText = "Ядро игры не загружено. Скиньте первый базовый кусок кода.";
+        document.getElementById('game-buttons').innerHTML = "";
         return;
     }
 
@@ -106,7 +158,6 @@ function runEngine() {
         return;
     }
 
-    // Отрисовка
     document.getElementById('game-text').innerText = scene.text;
     
     let btnHtml = "";
@@ -118,12 +169,12 @@ function runEngine() {
 
 function changeScene(targetId) {
     projectData.currentScene = targetId;
-    localStorage.setItem('stiks_builder_data', JSON.stringify(projectData));
+    saveToStorage();
     runEngine();
 }
 
 function resetBuilder() {
-    if (confirm("Сбросить всю сборку?")) {
+    if (confirm("Удалить всё, что собрано в памяти телефона?")) {
         localStorage.removeItem('stiks_builder_data');
         projectData = { core: null, scenes: {}, currentScene: null };
         location.reload();
