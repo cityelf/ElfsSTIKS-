@@ -79,7 +79,7 @@
         }
         .code-area { 
             width: 100%; 
-            height: 180px; 
+            height: 120px; 
             background: #050806; 
             border: 1px solid #a3e350; 
             color: #8bbd45; 
@@ -88,6 +88,17 @@
             box-sizing: border-box; 
             font-family: monospace; 
             font-size: 11px; 
+        }
+        .token-input {
+            width: 100%;
+            padding: 8px;
+            background: #1c1414;
+            border: 1px dashed #ff6b6b;
+            color: #fff;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+            font-size: 12px;
         }
         .error-box {
             background: #2a1414;
@@ -128,86 +139,99 @@
     <!-- Быстрая админка кода прямо в телефоне -->
     <div class="admin-panel">
         <div id="admin-error" class="error-box"></div>
-        <textarea id="code-editor" class="code-area" placeholder="Вставьте код сохранения или конфигурацию квеста..."></textarea>
+        
+        <!-- Сюда вы вставите токен ОДИН раз прямо на работающем сайте -->
+        <input type="password" id="user-token" class="token-input" placeholder="Вставьте ваш новый GitHub токен сюда...">
+        
+        <textarea id="code-editor" class="code-area" placeholder="Конфигурация квеста..."></textarea>
         <button onclick="saveCodeDirectly()" class="btn btn-action">💾 Сохранить код прямо в GitHub</button>
     </div>
 </div>
 
 <script>
-// Автоматическая привязка ссылки на текущий диалог
 document.getElementById('chat-link').href = window.location.href;
 
-// НАСТРОЙКИ РЕПОЗИТОРИЯ
-const GITHUB_TOKEN = "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"; 
+// Настройки репозитория (Здесь БЕЗОПАСНО, токена тут НЕТ!)
 const REPO_OWNER = "cityelf"; 
 const REPO_NAME = "cross"; 
 const FILE_PATH = "stiks_game.html"; 
 
-// Текущее состояние игры
-let gameState = { hp: 100, mp: 50, gold: 10, location: "start" };
+// Загружаем сохраненный токен из памяти телефона, если он там есть
+if (localStorage.getItem('stiks_key')) {
+    document.getElementById('user-token').value = localStorage.getItem('stiks_key');
+}
 
-// Инициализация текстового поля при загрузке страницы
+let gameState = { hp: 100, mp: 50, gold: 10, location: "start" };
 document.getElementById('code-editor').value = JSON.stringify(gameState, null, 2);
 
 function move(loc) {
     if(loc === 'forest') {
         gameState.hp -= 10;
-        document.getElementById('quest-display').innerText = "Деревья шепчут древние заклинания. Вы потеряли 10 HP от магии леса, но нашли тропу.";
+        document.getElementById('quest-display').innerText = "Деревья шепчут древние заклинания. Вы потеряли 10 HP от магии леса.";
     } else if(loc === 'ruins') {
         gameState.gold += 15;
-        document.getElementById('quest-display').innerText = "В обломках колонны вы нашли кошель со старыми монетами (+15 золота) !";
+        document.getElementById('quest-display').innerText = "В обломках колонны вы нашли кошель со старыми монетами (+15 золота)!";
     } else if(loc === 'river') {
         gameState.mp += 20;
-        document.getElementById('quest-display').innerText = "Вкус воды отдает металлом и вечностью. Ваши магические силы восстановились (+20 MP).";
+        document.getElementById('quest-display').innerText = "Магические силы восстановились (+20 MP).";
     }
     
-    // Синхронизация с UI
     document.getElementById('hp').innerText = gameState.hp;
     document.getElementById('mp').innerText = gameState.mp;
     document.getElementById('gold').innerText = gameState.gold;
-    
-    // Обновление содержимого в редакторе
     document.getElementById('code-editor').value = JSON.stringify(gameState, null, 2);
 }
 
-// Прямая отправка изменений на GitHub API без перезахода на другие платформы
 async function saveCodeDirectly() {
     const editorData = document.getElementById("code-editor").value;
+    const inputToken = document.getElementById("user-token").value.trim();
     const errBox = document.getElementById("admin-error");
     errBox.style.display = "none";
 
+    if (!inputToken) {
+        errBox.innerText = "❌ Ошибка: Введите ваш новый токен в поле ввода!";
+        errBox.style.display = "block";
+        return;
+    }
+
+    // Запоминаем токен локально в браузере, чтобы не вводить каждый раз
+    localStorage.setItem('stiks_key', inputToken);
+
     try {
-        // 1. Получаем SHA актуальной версии файла из репозитория
         const url = `https://github.com{REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`;
+        
         const getFile = await fetch(url, {
-            headers: { "Authorization": `token ${GITHUB_TOKEN}` }
+            method: "GET",
+            headers: { 
+                "Authorization": `Bearer ${inputToken}`,
+                "Accept": "application/vnd.github.v3+json"
+            }
         });
         
         if (!getFile.ok) {
-            throw new Error("Не удалось получить SHA файла. Проверьте правильность авторизации и токена.");
+            throw new Error(`Не удалось связаться с GitHub (Статус: ${getFile.status}). Возможно, токен неверный или удален.`);
         }
         const fileData = await getFile.json();
         const sha = fileData.sha;
 
-        // Кодируем данные из текстового поля в формат Base64
         const base64Content = btoa(unescape(encodeURIComponent(editorData)));
 
-        // 2. Отправляем обновленный контент обратно в ветку GitHub
         const updateFile = await fetch(url, {
             method: "PUT",
             headers: {
-                "Authorization": `token ${GITHUB_TOKEN}`,
-                "Content-Type": "application/json"
+                "Authorization": `Bearer ${inputToken}`,
+                "Content-Type": "application/json",
+                "Accept": "application/vnd.github.v3+json"
             },
             body: JSON.stringify({
-                message: "⚡ Быстрое обновление состояния/кода через мобильную админку",
+                message: "⚡ Безопасное обновление через localStorage",
                 content: base64Content,
                 sha: sha
             })
         });
 
         if (updateFile.ok) {
-            alert("🚀 Изменения успешно отправлены в ваш GitHub! Netlify обновит сайт в течение 15 секунд.");
+            alert("🚀 Изменения улетели на GitHub! Netlify обновит сайт через 15 секунд.");
             setTimeout(() => window.location.reload(), 1500);
         } else {
             const errRes = await updateFile.json();
@@ -215,7 +239,7 @@ async function saveCodeDirectly() {
         }
 
     } catch (err) {
-        errBox.innerText = "❌ Ошибка GitHub API: " + err.message;
+        errBox.innerText = "❌ Ошибка: " + err.message;
         errBox.style.display = "block";
     }
 }
