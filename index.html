@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -8,152 +7,27 @@
     <style>
         * { box-sizing: border-box; }
         body { background-color: #0b0d0c; color: #c8d6cc; font-family: 'Courier New', monospace; margin: 0; padding: 10px; }
-        .wrapper { max-width: 520px; margin: 0 auto; background: #131715; border: 1px solid #2e3b33; padding: 15px; }
-        h1 { font-size: 16px; text-align: center; color: #7fa88b; margin: 0 0 12px 0; border-bottom: 1px solid #2e3b33; padding-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
-        .builder-bar { background: #090b0a; border: 1px dashed #3d4f44; padding: 10px; margin-bottom: 15px; }
-        .builder-title { font-size: 11px; color: #7fa88b; margin-bottom: 6px; display: flex; justify-content: space-between; }
-        textarea { width: 100%; height: 60px; background: #050605; border: 1px solid #2e3b33; color: #9ec4a9; font-family: inherit; font-size: 11px; padding: 6px; resize: vertical; }
-        .btn-row { display: flex; gap: 6px; margin-top: 6px; }
+        .wrapper { max-width: 520px; margin: 0 auto; background: #131715; border: 1px solid #2e3b33; padding: 14px; }
+        h1 { font-size: 16px; text-align: center; color: #7fa88b; margin: 0 0 12px 0; border-bottom: 1px solid #2e3b33; padding-bottom: 8px; letter-spacing: 1px; }
         .btn { background: #1e2622; color: #c8d6cc; border: 1px solid #3d4f44; padding: 8px 10px; font-family: inherit; font-size: 12px; cursor: pointer; flex: 1; text-align: center; }
         .btn:active { background: #3d4f44; color: #fff; }
         .btn-primary { background: #2d4a38; border-color: #5c8f6e; color: #e6f5eb; font-weight: bold; }
         .btn-danger { background: #2b1414; border-color: #5c2828; color: #d68585; }
-        #game-viewport { min-height: 250px; background: #0e1210; border: 1px solid #2e3b33; padding: 12px; }
-        .log-box { margin-top: 12px; background: #070908; border: 1px solid #1f2923; padding: 8px; font-size: 11px; max-height: 110px; overflow-y: auto; color: #8c9e92; }
+        #game-viewport { min-height: 260px; background: #0e1210; border: 1px solid #2e3b33; padding: 12px; }
+        .log-box { margin-top: 10px; background: #070908; border: 1px solid #1f2923; padding: 8px; font-size: 11px; max-height: 115px; overflow-y: auto; color: #8c9e92; }
     </style>
 </head>
 <body>
-
 <div class="wrapper">
-    <h1>S-T-I-K-S // ЯДРО СИСТЕМЫ v4.0</h1>
-
-    <!-- Панель загрузки модулей -->
-    <div class="builder-bar">
-        <div class="builder-title">
-            <span>МОДУЛЬНЫЙ СБОРЩИК</span>
-            <span id="modules-count">Модулей: 0</span>
-        </div>
-        <textarea id="module-input" placeholder="Вставьте сюда код модуля из чата или бэкап..."></textarea>
-        <div class="btn-row">
-            <button class="btn btn-primary" onclick="installModule()">⚡ Установить модуль</button>
-            <button class="btn" onclick="exportAll()">📋 Бэкап</button>
-            <button class="btn btn-danger" onclick="wipeAll()">🗑️ Сброс</button>
-        </div>
+    <h1>S-T-I-K-S // ТАКТИЧЕСКИЙ СИМУЛЯТОР</h1>
+    <div id="game-viewport">Загрузка модулей Улья...</div>
+    <div id="sys-log" class="log-box">> Система Улья активна.</div>
+    <div style="display:flex;gap:6px;margin-top:8px;">
+        <button class="btn" style="font-size:10px;" onclick="toggleVoice()">🔊 Озвучка: ВКЛ</button>
+        <button class="btn" style="font-size:10px;" onclick="exportSave()">💾 Сохранения</button>
     </div>
-
-    <!-- Рабочий экран игры -->
-    <div id="game-viewport">
-        <div style="text-align:center; padding: 40px 10px; color: #687a6e;">
-            Система ожидает загрузки <b>Модуля 1 (База данных и Лобби Фамилий)</b>.
-        </div>
-    </div>
-
-    <!-- Журнал событий -->
-    <div id="sys-log" class="log-box">> Терминал инициализирован. Ожидание данных...</div>
 </div>
-
-<script>
-// Глобальное состояние игры в памяти телефона
-window.STIKS = {
-    modules: {},
-    db: {
-        families: {}, // Фамилии и слоты героев
-        session: null // Текущая партия
-    }
-};
-
-function log(msg) {
-    const box = document.getElementById('sys-log');
-    box.innerHTML = `> ${msg}<br>` + box.innerHTML;
-}
-
-// Загрузка из localStorage при старте
-window.onload = function() {
-    const savedDB = localStorage.getItem('stiks_v4_db');
-    const savedMods = localStorage.getItem('stiks_v4_mods');
-    if (savedDB) {
-        try { window.STIKS.db = JSON.parse(savedDB); } catch(e) {}
-    }
-    if (savedMods) {
-        try { 
-            window.STIKS.modules = JSON.parse(savedMods);
-            bootModules();
-        } catch(e) {}
-    }
-};
-
-function saveDB() {
-    localStorage.setItem('stiks_v4_db', JSON.stringify(window.STIKS.db));
-}
-
-// Установка нового модуля из текстового поля
-function installModule() {
-    const raw = document.getElementById('module-input').value.trim();
-    if (!raw) return;
-
-    try {
-        const pkg = JSON.parse(raw);
-        if (pkg.backup) {
-            window.STIKS.db = pkg.db;
-            window.STIKS.modules = pkg.modules;
-            saveDB();
-            localStorage.setItem('stiks_v4_mods', JSON.stringify(window.STIKS.modules));
-            document.getElementById('module-input').value = "";
-            log("Полный бэкап восстановлен.");
-            bootModules();
-            return;
-        }
-
-        if (!pkg.id || !pkg.code) {
-            alert("Неверный формат модуля.");
-            return;
-        }
-
-        window.STIKS.modules[pkg.id] = pkg.code;
-        localStorage.setItem('stiks_v4_mods', JSON.stringify(window.STIKS.modules));
-        document.getElementById('module-input').value = "";
-        log(`Модуль [${pkg.id}] успешно установлен.`);
-        bootModules();
-    } catch (e) {
-        alert("Ошибка чтения JSON: " + e.message);
-    }
-}
-
-// Запуск всех установленных модулей
-function bootModules() {
-    const keys = Object.keys(window.STIKS.modules);
-    document.getElementById('modules-count').innerText = `Модулей: ${keys.length}`;
-    
-    keys.forEach(k => {
-        try {
-            const fn = new Function(window.STIKS.modules[k]);
-            fn();
-        } catch (err) {
-            log(`Ошибка в модуле [${k}]: ${err.message}`);
-        }
-    });
-
-    if (window.STIKS.renderLobby) {
-        window.STIKS.renderLobby();
-    }
-}
-
-function exportAll() {
-    const data = JSON.stringify({ backup: true, db: window.STIKS.db, modules: window.STIKS.modules });
-    const ta = document.getElementById('module-input');
-    ta.value = data;
-    ta.select();
-    navigator.clipboard.writeText(data).catch(()=>{});
-    log("Слепок проекта и сохранений скопирован в буфер.");
-}
-
-function wipeAll() {
-    if (confirm("Удалить все модули и сохранения Фамилий?")) {
-        localStorage.removeItem('stiks_v4_db');
-        localStorage.removeItem('stiks_v4_mods');
-        location.reload();
-    }
-}
-</script>
+<script src="data.js"></script>
+<script src="engine.js"></script>
 </body>
 </html>
