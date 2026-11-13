@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>S-T-I-K-S: Панель Администратора</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { background: #090b0c; color: #c8d6cc; font-family: 'Courier New', monospace; margin: 0; padding: 10px; }
+    .wrapper { max-width: 560px; margin: 0 auto; background: #111518; border: 1px solid #2b3d4a; padding: 14px; }
+    h1 { font-size: 15px; text-align: center; color: #6ba4cc; margin: 0 0 12px 0; border-bottom: 1px solid #2b3d4a; padding-bottom: 8px; }
+    h2 { font-size: 12px; color: #9ec4a9; margin: 10px 0 6px 0; border-bottom: 1px dashed #2e3b33; padding-bottom: 4px; }
+    .card { background: #0b0e10; border: 1px solid #22303a; padding: 10px; margin-bottom: 10px; }
+    .row { display: flex; gap: 6px; margin-bottom: 6px; align-items: center; }
+    .btn { background: #1a242b; color: #c8d6cc; border: 1px solid #384e5e; padding: 7px 10px; font-family: inherit; font-size: 11px; cursor: pointer; text-align: center; }
+    .btn-primary { background: #1e3a4a; border-color: #4b8cb0; color: #e6f5ff; font-weight: bold; }
+    .btn-green { background: #2d4a38; border-color: #5c8f6e; color: #e6f5eb; font-weight: bold; }
+    .btn-danger { background: #2b1414; border-color: #5c2828; color: #d68585; }
+    input, select, textarea { background: #060809; border: 1px solid #2b3d4a; color: #c8d6cc; padding: 6px; font-family: inherit; font-size: 11px; width: 100%; }
+    .log-box { background: #050708; border: 1px solid #1f2923; padding: 8px; font-size: 11px; max-height: 120px; overflow-y: auto; color: #8c9e92; }
+    .badge { display: inline-block; padding: 2px 5px; font-size: 10px; border: 1px solid #384e5e; background: #151d24; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <h1>🛠️ S-T-I-K-S // ПАНЕЛЬ АДМИНИСТРАТОРА</h1>
+
+    <div class="row">
+      <a href="index.html" class="btn btn-green" style="flex:1; text-decoration:none;">🎮 Открыть игру (index.html)</a>
+      <button class="btn btn-primary" style="flex:1;" onclick="refreshAdmin()">🔄 Обновить данные</button>
+    </div>
+
+    <div class="card">
+      <h2>1. АКТИВНАЯ СЕССИЯ И СЛОЖНОСТЬ</h2>
+      <div id="session-info" style="font-size:11px; margin-bottom:8px;">Загрузка...</div>
+      <div class="row">
+        <select id="adm-diff"></select>
+        <button class="btn btn-primary" style="flex:0 0 auto;" onclick="applyDiff()">Применить сложность</button>
+      </div>
+      <div class="row">
+        <button class="btn" style="flex:1;" onclick="healAllSession()">❤️ Вылечить всех в рейде</button>
+        <button class="btn btn-danger" style="flex:1;" onclick="resetSession()">🛑 Сбросить рейд</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>2. КЛАНЫ И БОЙЦЫ (РЕДАКТОР)</h2>
+      <div class="row">
+        <select id="adm-fam" onchange="renderAdminHeroes()"></select>
+        <button class="btn btn-danger" style="flex:0 0 auto;" onclick="deleteFamily()">Удалить клан</button>
+      </div>
+      <div id="adm-heroes-list"></div>
+    </div>
+
+    <div class="card">
+      <h2>3. ВЫДАЧА ПРЕДМЕТОВ В АКТИВНЫЙ РЕЙД</h2>
+      <div class="row">
+        <select id="adm-player-target"></select>
+        <select id="adm-item-cls" onchange="populateItemList()">
+          <option value="1">Класс 1 (Базовый)</option>
+          <option value="2">Класс 2 (Армейский)</option>
+          <option value="3">Класс 3 (Спецназ)</option>
+          <option value="4">Класс 4 (Элита/Аномал.)</option>
+          <option value="cal">Калибры / Обвес</option>
+        </select>
+      </div>
+      <div class="row">
+        <select id="adm-item-pick"></select>
+        <button class="btn btn-green" style="flex:0 0 auto;" onclick="giveAdminItem()">🎁 Выдать</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>4. ПРОВЕРКА ОЗВУЧКИ И ГОЛОСОВ</h2>
+      <div class="row">
+        <button class="btn" style="flex:1;" onclick="testHiveVoice()">🔊 Голос Системы Улья</button>
+        <button class="btn" style="flex:1; border-color:#d6b85a; color:#d6b85a;" onclick="testAll8Voices()">🎙️ Тест всех 8 голосов</button>
+      </div>
+      <div class="row">
+        <button class="btn" style="flex:1;" onclick="scanSystemVoices()">🔍 Список голосов устройства</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>5. РЕЗЕРВНОЕ КОПИРОВАНИЕ БАЗЫ (JSON)</h2>
+      <textarea id="db-json-area" rows="4" placeholder="JSON базы сохранений..."></textarea>
+      <div class="row" style="margin-top:6px;">
+        <button class="btn btn-primary" style="flex:1;" onclick="exportDBText()">📤 Выгрузить в окно</button>
+        <button class="btn btn-green" style="flex:1;" onclick="importDBText()">📥 Загрузить из окна</button>
+        <button class="btn btn-danger" style="flex:0 0 auto;" onclick="wipeAllDB()">☢️ Сброс БД</button>
+      </div>
+    </div>
+
+    <div id="adm-log" class="log-box">> Админ-панель инициализирована.</div>
+  </div>
+
+  <script src="stiks_db.js"></script>
+  <script src="stiks_engine.js"></script>
+  <script>
+    const DB_KEY = 'stiks_prod_db';
+    let localDB = { families: {}, session: null };
+
+    function admLog(msg) {
+      const box = document.getElementById('adm-log');
+      box.innerHTML = '> ' + msg + '<br>' + box.innerHTML;
+    }
+
+    function loadLocalDB() {
+      const raw = localStorage.getItem(DB_KEY);
+      if (raw) {
+        try { localDB = JSON.parse(raw); } catch (e) { admLog('Ошибка чтения localStorage'); }
+      }
+      if (!localDB.families) localDB.families = {};
+      if (window.STIKS) window.STIKS.db = localDB;
+    }
+
+    function saveLocalDB() {
+      localStorage.setItem(DB_KEY, JSON.stringify(localDB));
+      if (window.STIKS) window.STIKS.db = localDB;
+    }
+
+    function refreshAdmin() {
+      loadLocalDB();
+      const diffSel = document.getElementById('adm-diff');
+      diffSel.innerHTML = '';
+      if (window.STIKS_DB && window.STIKS_DB.DIFFS) {
+        Object.keys(window.STIKS_DB.DIFFS).forEach(k => {
+          const opt = document.createElement('option');
+          opt.value = k;
+          opt.textContent = window.STIKS_DB.DIFFS[k].name;
+          if (localDB.session && localDB.session.diffKey === k) opt.selected = true;
+          diffSel.appendChild(opt);
+        });
+      }
+
+      const sInfo = document.getElementById('session-info');
+      const pTarget = document.getElementById('adm-player-target');
+      pTarget.innerHTML = '';
+
+      if (localDB.session) {
+        const s = localDB.session;
+        sInfo.innerHTML = `Статус: <b style="color:#7fa88b;">АКТИВНЫЙ РЕЙД</b> | Ход: <b>${s.turn}</b> | Сложность: <b>${s.diffKey} (${s.diffMod})</b><br>Игроков: <b>${s.players.length}</b> | Зараженных на карте: <b>${s.zombies.length}</b>`;
+        s.players.forEach((p, idx) => {
+          const opt = document.createElement('option');
+          opt.value = idx;
+          opt.textContent = `${p.family} ${p.name} (HP: ${p.hp}/${p.maxHp})`;
+          pTarget.appendChild(opt);
+        });
+      } else {
+        sInfo.innerHTML = `Статус: <span style="color:#8c9e92;">Нет активного рейда (игроки в Лобби)</span>`;
+        const opt = document.createElement('option');
+        opt.value = -1;
+        opt.textContent = 'Нет игроков в рейде';
+        pTarget.appendChild(opt);
+      }
+
+      const famSel = document.getElementById('adm-fam');
+      const prevFam = famSel.value;
+      famSel.innerHTML = '';
+      const fams = Object.keys(localDB.families);
+      if (fams.length === 0) {
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.textContent = 'Нет созданных кланов';
+        famSel.appendChild(opt);
+      } else {
+        fams.forEach(f => {
+          const opt = document.createElement('option');
+          opt.value = f;
+          opt.textContent = `${f} (${localDB.families[f].length}/5)`;
+          if (f === prevFam) opt.selected = true;
+          famSel.appendChild(opt);
+        });
+      }
+
+      renderAdminHeroes();
+      populateItemList();
+      admLog('Данные обновлены.');
+    }
+
+    function applyDiff() {
+      if (!localDB.session) { admLog('Нет активного рейда для смены сложности.'); return; }
+      const k = document.getElementById('adm-diff').value;
+      const d = window.STIKS_DB.DIFFS[k];
+      if (d) {
+        localDB.session.diffKey = k;
+        localDB.session.diffMod = d.mod;
+        saveLocalDB();
+        refreshAdmin();
+        admLog(`Сложность рейда изменена на: ${d.name}`);
+      }
+    }
+
+    function healAllSession() {
+      if (!localDB.session) { admLog('Нет активного рейда.'); return; }
+      localDB.session.players.forEach(p => {
+        p.hp = p.maxHp;
+        p.food = 100;
+        p.water = 100;
+        p.stamina = 100;
+        p.spore = Math.max(p.spore, 80);
+        p.stinkTurns = 0;
+        p.stepsLeft = p.maxAp || 6;
+      });
+      saveLocalDB();
+      refreshAdmin();
+      admLog('Все участники рейда полностью вылечены, накормлены и получили полные ОХ.');
+    }
+
+    function resetSession() {
+      if (!confirm('Принудительно завершить текущий рейд и вернуть всех бойцов в статус «Готов»?')) return;
+      Object.keys(localDB.families).forEach(f => {
+        localDB.families[f].forEach(h => {
+          if (h.status === 'in_raid') h.status = 'ready';
+        });
+      });
+      localDB.session = null;
+      saveLocalDB();
+      refreshAdmin();
+      admLog('Активная сессия сброшена. Бойцы разблокированы.');
+    }
+
+    function renderAdminHeroes() {
+      const fam = document.getElementById('adm-fam').value;
+      const box = document.getElementById('adm-heroes-list');
+      if (!fam || !localDB.families[fam]) {
+        box.innerHTML = '<div style="font-size:11px;color:#687a6e;">Выберите клан выше.</div>';
+        return;
+      }
+      const list = localDB.families[fam];
+      if (list.length === 0) {
+        box.innerHTML = '<div style="font-size:11px;color:#687a6e;">В клане нет бойцов.</div>';
+        return;
+      }
+      let html = '';
+      list.forEach((h, idx) => {
+        const archName = (window.STIKS_DB.ARCHETYPES[h.arch] || {}).name || h.arch;
+        html += `<div style="border:1px solid #1f2923; padding:6px; margin-bottom:5px; font-size:11px;">
+          <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+            <b>${h.name}</b>
+            <span class="badge">${archName} | Ур.${h.lvl} | ${h.status}</span>
+          </div>
+          <div style="font-size:10px; color:#8c9e92; margin-bottom:5px;">
+            Сл:${h.stats.str} Лв:${h.stats.agi} Ск:${h.stats.spd} Вн:${h.stats.end} Инт:${h.stats.int} Дух:${h.stats.spi}
+          </div>
+          <div class="row" style="margin-bottom:0;">
+            <button class="btn" style="flex:1; padding:3px;" onclick="setHeroReady('${fam}', ${idx})">🔓 Готов</button>
+            <button class="btn" style="flex:1; padding:3px;" onclick="lvlUpHero('${fam}', ${idx})">⬆️ +1 Ур.</button>
+            <button class="btn" style="flex:1; padding:3px;" onclick="toggleInfected('${fam}', ${idx})">☣️ Зараж.</button>
+            <button class="btn btn-danger" style="flex:0 0 auto; padding:3px 6px;" onclick="delHeroAdmin('${fam}', ${idx})">Х</button>
+          </div>
+        </div>`;
+      });
+      box.innerHTML = html;
+    }
+
+    function setHeroReady(fam, idx) {
+      const h = localDB.families[fam][idx];
+      if (h) {
+        h.status = 'ready';
+        h.hp = h.maxHp;
+        saveLocalDB();
+        renderAdminHeroes();
+        admLog(`${h.name}: статус «ready», здоровье восстановлено.`);
+      }
+    }
+
+    function lvlUpHero(fam, idx) {
+      const h = localDB.families[fam][idx];
+      if (h) {
+        h.lvl += 1;
+        h.stats.str += 2; h.stats.agi += 2; h.stats.spd += 2;
+        h.stats.end += 2; h.stats.int += 2; h.stats.spi += 2;
+        h.maxHp = 10 + h.stats.end;
+        h.hp = h.maxHp;
+        saveLocalDB();
+        renderAdminHeroes();
+        admLog(`${h.name} повышен до ${h.lvl} уровня (+2 ко всем статам).`);
+      }
+    }
+
+    function toggleInfected(fam, idx) {
+      const h = localDB.families[fam][idx];
+      if (h) {
+        h.isInfected = !h.isInfected;
+        saveLocalDB();
+        renderAdminHeroes();
+        admLog(`${h.name}: статус Особого Зараженного = ${h.isInfected}.`);
+      }
+    }
+
+    function delHeroAdmin(fam, idx) {
+      if (!confirm('Удалить бойца?')) return;
+      const h = localDB.families[fam].splice(idx, 1)[0];
+      saveLocalDB();
+      refreshAdmin();
+      admLog(`Удален боец: ${h.name}`);
+    }
+
+    function deleteFamily() {
+      const fam = document.getElementById('adm-fam').value;
+      if (!fam || !confirm(`Удалить весь клан "${fam}"?`)) return;
+      delete localDB.families[fam];
+      saveLocalDB();
+      refreshAdmin();
+      admLog(`Клан ${fam} удален.`);
+    }
+
+    let currentPool = [];
+    function populateItemList() {
+      const cls = document.getElementById('adm-item-cls').value;
+      const pick = document.getElementById('adm-item-pick');
+      pick.innerHTML = '';
+      currentPool = [];
+
+      if (cls === 'cal' && window.STIKS_DB.CAL_POOL) {
+        ['weapon', 'ammo', 'gear'].forEach(cat => {
+          window.STIKS_DB.CAL_POOL[cat].forEach(it => currentPool.push({ ...it, cat }));
+        });
+      } else if (window.STIKS_DB.ITEMS && window.STIKS_DB.ITEMS[cls]) {
+        const grp = window.STIKS_DB.ITEMS[cls];
+        ['weapon', 'armor', 'supply'].forEach(cat => {
+          ['std', 'weak', 'troll', 'luck'].forEach(sub => {
+            if (grp[cat] && grp[cat][sub]) {
+              grp[cat][sub].forEach(it => currentPool.push({ ...it, cat, cls: Number(cls) }));
+            }
+          });
+        });
+      }
+
+      currentPool.forEach((it, i) => {
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = `[${it.cat}] ${it.n} (${it.w}кг)`;
+        pick.appendChild(opt);
+      });
+    }
+
+    function giveAdminItem() {
+      if (!localDB.session) { admLog('Выдача возможна только во время активного рейда.'); return; }
+      const pIdx = Number(document.getElementById('adm-player-target').value);
+      const iIdx = Number(document.getElementById('adm-item-pick').value);
+      const p = localDB.session.players[pIdx];
+      const item = currentPool[iIdx];
+      if (p && item) {
+        p.inv.push(JSON.parse(JSON.stringify(item)));
+        saveLocalDB();
+        admLog(`Выдано игроку ${p.name}: ${item.n}`);
+      }
+    }
+
+    function testHiveVoice() {
+      if (window.STIKS && window.STIKS.sayAs) {
+        window.STIKS.voiceOn = true;
+        window.STIKS.sayAs('hive', 'Внимание, Администратор. Система Улья работает в штатном режиме. Все протоколы активны.');
+      } else {
+        admLog('Модуль озвучки не загружен.');
+      }
+    }
+
+    function testAll8Voices() {
+      if (window.STIKS && window.STIKS.testAllVoices) {
+        window.STIKS.voiceOn = true;
+        admLog('Запущен последовательный тест 8 голосов...');
+        window.STIKS.testAllVoices();
+      }
+    }
+
+    function scanSystemVoices() {
+      const vs = window.speechSynthesis.getVoices().filter(v => v.lang.toLowerCase().includes('ru'));
+      if (!vs.length) {
+        admLog('Русские голоса еще загружаются, нажмите кнопку снова через секунду.');
+        return;
+      }
+      admLog(`Найдено русских голосов: ${vs.length}`);
+      vs.forEach((v, i) => admLog(`[${i}] ${v.name}`));
+    }
+
+    function exportDBText() {
+      document.getElementById('db-json-area').value = JSON.stringify(localDB, null, 2);
+      admLog('База выгружена в текстовое поле.');
+    }
+
+    function importDBText() {
+      const txt = document.getElementById('db-json-area').value.trim();
+      if (!txt) return;
+      try {
+        const parsed = JSON.parse(txt);
+        if (!parsed.families) throw new Error('Неверный формат');
+        localDB = parsed;
+        saveLocalDB();
+        refreshAdmin();
+        admLog('База успешно импортирована и сохранена!');
+      } catch (e) {
+        alert('Ошибка JSON: ' + e.message);
+      }
+    }
+
+    function wipeAllDB() {
+      if (!confirm('ВНИМАНИЕ! Это полностью удалит все кланы, героев и сессии. Продолжить?')) return;
+      localDB = { families: {}, session: null };
+      saveLocalDB();
+      refreshAdmin();
+      admLog('База данных полностью очищена.');
+    }
+
+    window.onload = refreshAdmin;
+  </script>
+</body>
+</html>
