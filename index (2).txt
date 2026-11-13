@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>S-T-I-K-S: Тактический Симулятор</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { background: #0b0d0c; color: #c8d6cc; font-family: 'Courier New', monospace; margin: 0; padding: 10px; }
+    .wrapper { max-width: 520px; margin: 0 auto; background: #131715; border: 1px solid #2e3b33; padding: 15px; }
+    h1 { font-size: 16px; text-align: center; color: #7fa88b; margin: 0 0 12px 0; border-bottom: 1px solid #2e3b33; padding-bottom: 8px; }
+    .btn { background: #1e2622; color: #c8d6cc; border: 1px solid #3d4f44; padding: 8px 10px; font-family: inherit; font-size: 12px; cursor: pointer; flex: 1; text-align: center; }
+    .btn:active { background: #2d4a38; }
+    .btn-primary { background: #2d4a38; border-color: #5c8f6e; color: #e6f5eb; font-weight: bold; }
+    .btn-danger { background: #2b1414; border-color: #5c2828; color: #d68585; }
+    #game-viewport { min-height: 250px; background: #0e1210; border: 1px solid #2e3b33; padding: 12px; }
+    .log-box { margin-top: 12px; background: #070908; border: 1px solid #1f2923; padding: 8px; font-size: 11px; max-height: 110px; overflow-y: auto; color: #8c9e92; }
+    .top-controls { display: flex; gap: 6px; margin-bottom: 8px; }
+    .patch-badge { font-size: 10px; color: #687a6e; text-align: right; margin-bottom: 6px; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <h1>S-T-I-K-S // ТАКТИЧЕСКИЙ СИМУЛЯТОР</h1>
+    <div id="patch-status" class="patch-badge">Ядро: v1.0</div>
+    <div class="top-controls">
+      <button id="btn-voice-toggle" class="btn" style="font-size:11px;" onclick="toggleVoice()">🔊 Озвучка: ВКЛ</button>
+      <button class="btn" style="font-size:11px;" onclick="exportSave()">💾 Сейвы Кланов</button>
+    </div>
+    <div id="game-viewport"></div>
+    <div id="sys-log" class="log-box">&gt; Система готова.</div>
+  </div>
+
+  <script src="stiks_db.js"></script>
+  <script src="stiks_engine.js"></script>
+  <script src="stiks_patcher.js"></script>
+  <script>
+    function log(m) {
+      const b = document.getElementById('sys-log');
+      if (b) b.innerHTML = '&gt; ' + m + '<br>' + b.innerHTML;
+    }
+    function saveDB() {
+      if (window.STIKS && window.STIKS.db) {
+        localStorage.setItem('stiks_prod_db', JSON.stringify(window.STIKS.db));
+      }
+    }
+    function toggleVoice() {
+      if (!window.STIKS) return;
+      window.STIKS.voiceOn = !window.STIKS.voiceOn;
+      const btn = document.getElementById('btn-voice-toggle');
+      if (btn) btn.innerText = window.STIKS.voiceOn ? '🔊 Озвучка: ВКЛ' : '🔇 Озвучка: ВЫКЛ';
+      if (!window.STIKS.voiceOn && 'speechSynthesis' in window) window.speechSynthesis.cancel();
+    }
+    function exportSave() {
+      if (!window.STIKS) return;
+      const cur = JSON.stringify(window.STIKS.db);
+      const d = prompt('Скопируйте код сохранения или вставьте чужой:', cur);
+      if (d && d !== cur) {
+        try {
+          window.STIKS.db = JSON.parse(d);
+          saveDB();
+          location.reload();
+        } catch (e) {
+          alert('Ошибка формата сохранения');
+        }
+      }
+    }
+    window.onload = function() {
+      if (window.STIKS) {
+        const s = localStorage.getItem('stiks_prod_db');
+        if (s) {
+          try { window.STIKS.db = JSON.parse(s); } catch (e) {}
+        }
+        if (window.STIKS_PATCHER && window.STIKS_PATCHER.boot) {
+          const info = window.STIKS_PATCHER.boot();
+          const badge = document.getElementById('patch-status');
+          if (badge && info) badge.innerText = info;
+        }
+        if (window.STIKS.db.session && window.STIKS.renderGame) {
+          window.STIKS.renderGame();
+        } else if (window.STIKS.renderLobby) {
+          window.STIKS.renderLobby();
+        }
+      } else {
+        log('Ошибка загрузки модулей stiks_db.js / stiks_engine.js');
+      }
+    };
+  </script>
+</body>
+</html>
