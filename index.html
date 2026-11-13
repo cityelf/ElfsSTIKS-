@@ -30,11 +30,13 @@
     <div id="game-viewport"></div>
     <div id="sys-log" class="log-box">&gt; Система готова.</div>
   </div>
-
+  
   <script src="stiks_db.js"></script>
   <script src="stiks_engine.js"></script>
+  <script src="patch.js"></script>
   <script src="stiks_patcher.js"></script>
-  <script>
+
+   <script>
     function log(m) {
       const b = document.getElementById('sys-log');
       if (b) b.innerHTML = '&gt; ' + m + '<br>' + b.innerHTML;
