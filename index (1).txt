@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>S-T-I-K-S: Тактический Симулятор</title>
+<style>
+  * { box-sizing: border-box; }
+  body { background: #0b0d0c; color: #c8d6cc; font-family: 'Courier New', monospace; margin: 0; padding: 10px; }
+  .wrapper { max-width: 520px; margin: 0 auto; background: #131715; border: 1px solid #2e3b33; padding: 15px; }
+  h1 { font-size: 16px; text-align: center; color: #7fa88b; margin: 0 0 12px 0; border-bottom: 1px solid #2e3b33; padding-bottom: 8px; }
+  .btn { background: #1e2622; color: #c8d6cc; border: 1px solid #3d4f44; padding: 8px 10px; font-family: inherit; font-size: 12px; cursor: pointer; flex: 1; text-align: center; }
+  .btn:active { background: #2d4a38; }
+  .btn-primary { background: #2d4a38; border-color: #5c8f6e; color: #e6f5eb; font-weight: bold; }
+  .btn-danger { background: #2b1414; border-color: #5c2828; color: #d68585; }
+  #game-viewport { min-height: 260px; background: #0e1210; border: 1px solid #2e3b33; padding: 12px; }
+  .log-box { margin-top: 12px; background: #070908; border: 1px solid #1f2923; padding: 8px; font-size: 11px; max-height: 115px; overflow-y: auto; color: #8c9e92; }
+  .top-controls { display: flex; gap: 6px; margin-top: 8px; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <h1>S-T-I-K-S // ТАКТИЧЕСКИЙ СИМУЛЯТОР</h1>
+  <div id="game-viewport">Загрузка модулей Улья...</div>
+  <div id="sys-log" class="log-box">&gt; Инициализация терминала...</div>
+  <div class="top-controls">
+    <button class="btn" style="font-size:10px;" onclick="window.STIKS.toggleVoice()">🔊 Озвучка: ВКЛ</button>
+    <button class="btn" style="font-size:10px;" onclick="exportSave()">💾 Экспорт / Импорт Кланов</button>
+  </div>
+</div>
+
+<script src="stiks_db.js"></script>
+<script src="stiks_engine.js"></script>
+<script>
+function log(m) {
+  const b = document.getElementById('sys-log');
+  if (b) b.innerHTML = '&gt; ' + m + '<br>' + b.innerHTML;
+}
+
+function saveDB() {
+  try {
+    localStorage.setItem('stiks_prod_db', JSON.stringify(window.STIKS.db));
+  } catch (e) {
+    log('Ошибка сохранения в память браузера.');
+  }
+}
+
+function exportSave() {
+  const cur = JSON.stringify(window.STIKS.db);
+  const d = prompt('Скопируйте код сохранения или вставьте чужой:', cur);
+  if (d && d !== cur) {
+    try {
+      window.STIKS.db = JSON.parse(d);
+      saveDB();
+      location.reload();
+    } catch (e) {
+      alert('Ошибка формата кода сохранения!');
+    }
+  }
+}
+
+window.onload = function() {
+  if (!window.STIKS_DB || !window.STIKS) {
+    document.getElementById('game-viewport').innerHTML =
+      '<div style="color:#d68585;font-size:12px;">❌ Ошибка загрузки: убедитесь, что файлы <b>stiks_db.js</b> и <b>stiks_engine.js</b> находятся в той же папке, что и <b>index.html</b>.</div>';
+    return;
+  }
+
+  window.STIKS.toggleVoice = function() {
+    window.STIKS.voiceOn = !window.STIKS.voiceOn;
+    const btns = document.querySelectorAll('.top-controls .btn');
+    if (btns[0]) btns[0].innerText = window.STIKS.voiceOn ? '🔊 Озвучка: ВКЛ' : '🔇 Озвучка: ВЫКЛ';
+    log(window.STIKS.voiceOn ? 'Голосовой синтезатор активирован.' : 'Голосовой синтезатор отключен.');
+  };
+
+  const saved = localStorage.getItem('stiks_prod_db');
+  if (saved) {
+    try {
+      window.STIKS.db = JSON.parse(saved);
+    } catch (e) {}
+  }
+
+  if (!window.STIKS.db) window.STIKS.db = { families: {}, session: null };
+  if (!window.STIKS.db.families) window.STIKS.db.families = {};
+
+  log('Система готова. База данных и движок подключены.');
+
+  if (window.STIKS.db.session && window.STIKS.renderGame) {
+    window.STIKS.renderGame();
+  } else if (window.STIKS.renderLobby) {
+    window.STIKS.renderLobby();
+  }
+};
+</script>
+</body>
+</html>
