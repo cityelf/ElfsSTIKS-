@@ -1,30 +1,102 @@
 window.STIKS_REMOTE_PATCH = {
-  "version": "v1.1-ui-restore",
-  "ENGINE_SET": {
-    "resumeRaid": "function() {\n  if (this.db.session) {\n    this.log('▶️ Возврат в активный рейд...');\n    this.renderGame();\n  } else {\n    alert('Активная сессия не найдена.');\n  }\n}",
-    "showProfile": "function() {\n  const s = this.db.session;\n  const p = s.players[s.activeIdx];\n  const a = window.STIKS_DB.ARCHETYPES[p.arch];\n  let msg = 'ПРОФИЛЬ: ' + p.family + ' ' + p.name + ' (Ур.' + p.lvl + ')\\n';\n  if (p.lvl < 5) {\n    msg += 'Характеристики скрыты (доступны с 5 ур.).';\n  } else if (p.lvl < 10) {\n    const f = (v, hi, lo) => v >= 12 ? hi : lo;\n    msg += 'Ощущения (5+ ур.):\\n' +\n      'Сл: ' + f(p.stats.str, 'Я мощный', 'Я слабак') + '\\n' +\n      'Лв: ' + f(p.stats.agi, 'Я быстрый и гибкий', 'Я недостаточно ловкий') + '\\n' +\n      'Ск: ' + f(p.stats.spd, 'Я стремительный', 'Я медлительный') + '\\n' +\n      'Вн: ' + f(p.stats.end, 'Я двужильный', 'Я быстро выдыхаюсь') + '\\n' +\n      'Инт: ' + f(p.stats.int, 'Я соображаю отлично', 'В голове туман') + '\\n' +\n      'Дух: ' + f(p.stats.spi, 'Воля стальная', 'Мне не по себе');\n  } else {\n    msg += 'Точные цифры (10+ ур.):\\n' +\n      'Сила: ' + p.stats.str + ' | Ловк: ' + p.stats.agi + ' | Скор: ' + p.stats.spd + '\\n' +\n      'Вын: ' + p.stats.end + ' | Инт: ' + p.stats.int + ' | Дух: ' + p.stats.spi;\n  }\n  if (p.lvl >= 15) msg += '\\n🌟 Дар 15 ур.: ' + a.dar15;\n  alert(msg);\n}",
-    "renderLobby": "function() {\n  const vp = document.getElementById('game-viewport');\n  if (!vp) return;\n  if (!window.STIKS_DB || !window.STIKS_DB.ARCHETYPES) {\n    vp.innerHTML = '<div style=\"color:#d68585;font-size:12px;\">Ошибка: база данных stiks_db.js не загружена.</div>';\n    return;\n  }\n  let html = '';\n  if (this.db.session) {\n    html += '<div style=\"background:#162b1e;border:1px solid #5c8f6e;padding:10px;margin-bottom:10px;text-align:center;\">' +\n      '<div style=\"font-size:12px;color:#e6f5eb;margin-bottom:6px;\">⚠️ ОБНАРУЖЕН НЕЗАВЕРШЕННЫЙ РЕЙД (Ход ' + this.db.session.turn + ')</div>' +\n      '<button class=\"btn btn-primary\" style=\"width:100%;\" onclick=\"window.STIKS.resumeRaid()\">▶️ ПРОДОЛЖИТЬ ТЕКУЩУЮ ПАРТИЮ</button>' +\n    '</div>';\n  }\n  const fams = Object.keys(this.db.families || {});\n  html += '<div style=\"font-size:13px;color:#7fa88b;margin-bottom:8px;font-weight:bold;\">ЛОББИ // СЕМЕЙНЫЕ ПРОФИЛИ (HOT SEAT)</div>';\n  html += '<div style=\"display:flex;gap:5px;margin-bottom:10px;\"><input id=\"new-fam\" placeholder=\"Новая Фамилия...\" style=\"flex:1;background:#050605;border:1px solid #2e3b33;color:#c8d6cc;padding:6px;font-family:inherit;font-size:12px;\"><button class=\"btn btn-primary\" style=\"flex:0 0 auto;\" onclick=\"window.STIKS.addFamily()\">+ Клан</button></div>';\n  if (fams.length === 0) {\n    html += '<div style=\"font-size:12px;color:#687a6e;padding:10px;border:1px dashed #2e3b33;\">Нет созданных фамилий. Введите фамилию выше для начала.</div>';\n  } else {\n    html += '<div style=\"display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px;\">';\n    fams.forEach(f => {\n      const act = this.activeFamily === f ? 'border-color:#7fa88b;background:#1e2e24;font-weight:bold;' : '';\n      html += '<button class=\"btn\" style=\"flex:0 0 auto;padding:5px 8px;' + act + '\" onclick=\"window.STIKS.selectFamily(\\'' + f + '\\')\">' + f + ' (' + this.db.families[f].length + '/5)</button>';\n    });\n    html += '</div>';\n  }\n  if (this.activeFamily) {\n    const fam = this.activeFamily;\n    const heroes = this.db.families[fam] || [];\n    html += '<div style=\"background:#090b0a;border:1px solid #2e3b33;padding:8px;margin-bottom:10px;\"><div style=\"font-size:12px;color:#9ec4a9;margin-bottom:6px;\">КЛАН: ' + fam.toUpperCase() + ' (' + heroes.length + '/5 слотов)</div>';\n    if (heroes.length < 5) {\n      html += '<div style=\"display:flex;gap:4px;margin-bottom:8px;\"><input id=\"hero-name\" placeholder=\"Имя героя...\" style=\"flex:1;background:#050605;border:1px solid #2e3b33;color:#c8d6cc;padding:5px;font-family:inherit;font-size:11px;\"><select id=\"hero-arch\" style=\"background:#050605;border:1px solid #2e3b33;color:#c8d6cc;padding:5px;font-family:inherit;font-size:11px;\">';\n      Object.keys(window.STIKS_DB.ARCHETYPES).forEach(k => {\n        html += '<option value=\"' + k + '\">' + window.STIKS_DB.ARCHETYPES[k].name + '</option>';\n      });\n      html += '</select><button class=\"btn btn-primary\" style=\"flex:0 0 auto;padding:5px 8px;\" onclick=\"window.STIKS.addHero()\">Создать</button></div>';\n    } else {\n      html += '<div style=\"font-size:11px;color:#d68585;margin-bottom:6px;\">Лимит 5 героев. Удалите одного для создания нового.</div>';\n    }\n    heroes.forEach((h, idx) => {\n      let stColor = '#7fa88b', stText = 'ГОТОВ К РЕЙДУ', canPick = true, btnLabel = 'В отряд';\n      if (h.status === 'in_raid') { stColor = '#d6b85a'; stText = 'В РЕЙДЕ (БЛОК)'; canPick = false; }\n      if (h.status === 'dead') { stColor = '#d68585'; stText = 'ПОГИБ (ДОСТУПЕН КАК ЗАРАЖЕННЫЙ)'; btnLabel = 'Воскресить (Зараж.)'; }\n      const inSquad = this.squad.some(s => s.uid === h.uid);\n      html += '<div style=\"border:1px solid #1f2923;padding:6px;margin-bottom:5px;font-size:11px;display:flex;justify-content:space-between;align-items:center;\"><div><b>' + h.name + '</b> [Ур.' + h.lvl + '] (' + (h.isInfected ? 'ОСОБЫЙ ЗАРАЖЕННЫЙ' : window.STIKS_DB.ARCHETYPES[h.arch].name) + ')<br><span style=\"color:' + stColor + ';\">' + stText + '</span></div><div style=\"display:flex;gap:4px;\">';\n      if (h.status === 'in_raid') {\n        html += '<button class=\"btn\" style=\"padding:4px 6px;font-size:10px;border-color:#d6b85a;color:#d6b85a;\" onclick=\"window.STIKS.unlockHero(\\'' + fam + '\\',' + idx + ')\">🔓 Снять блок</button>';\n      }\n      if (canPick && !inSquad) {\n        html += '<button class=\"btn btn-primary\" style=\"padding:4px 6px;font-size:11px;\" onclick=\"window.STIKS.toggleSquad(\\'' + fam + '\\',' + idx + ')\">' + btnLabel + '</button>';\n      }\n      html += '<button class=\"btn btn-danger\" style=\"padding:4px 6px;font-size:11px;\" onclick=\"window.STIKS.delHero(\\'' + fam + '\\',' + idx + ')\">Х</button></div></div>';\n    });\n    html += '</div>';\n  }\n  html += '<div style=\"background:#090b0a;border:1px solid #3d4f44;padding:8px;\"><div style=\"font-size:12px;color:#c8d6cc;margin-bottom:5px;\">СОСТАВ НА ВЫСАДКУ (' + this.squad.length + ' чел.):</div>';\n  if (this.squad.length === 0) {\n    html += '<div style=\"font-size:11px;color:#687a6e;\">Выберите хотя бы 1 героя из фамилий выше.</div>';\n  } else {\n    this.squad.forEach((s, i) => {\n      html += '<div style=\"font-size:11px;color:#9ec4a9;display:flex;justify-content:space-between;margin-bottom:3px;\"><span>' + (i + 1) + '. ' + s.family + ' ' + s.name + ' — ' + (s.asInfected ? '[ЗАРАЖЕННЫЙ Ур.' + s.lvl + ']' : '[ИММУННЫЙ Ур.' + s.lvl + ']') + '</span><span style=\"color:#d68585;cursor:pointer;\" onclick=\"window.STIKS.removeSquad(' + i + ')\">[убрать]</span></div>';\n    });\n    html += '<div style=\"display:flex;gap:5px;margin-top:8px;\"><select id=\"raid-diff\" style=\"background:#050605;border:1px solid #3d4f44;color:#c8d6cc;padding:6px;font-family:inherit;font-size:11px;\">' + Object.keys(window.STIKS_DB.DIFFS).map(dk => '<option value=\"' + dk + '\">' + window.STIKS_DB.DIFFS[dk].name + '</option>').join('') + '</select><button class=\"btn btn-primary\" style=\"flex:1;\" onclick=\"window.STIKS.launchMap(document.getElementById(\\'raid-diff\\').value)\">🚀 НАЧАТЬ ВЫСАДКУ (60x60)</button></div>';\n  }\n  html += '</div>';\n  vp.innerHTML = html;\n}",
-    "renderCombat": "function() {\n  const s = this.db.session;\n  const p = s.players[s.activeIdx];\n  const c = s.combat;\n  if (!c) { this.renderGame(); return; }\n  const vp = document.getElementById('game-viewport');\n  const a = window.STIKS_DB.ARCHETYPES[p.arch];\n  const sl = p.slots || {};\n  const activeW = sl.main || sl.side || sl.melee;\n  const totDef = (sl.armor ? sl.armor.d : 0) + (sl.clothes ? sl.clothes.d : 0) + (sl.boots ? sl.boots.d : 0);\n  let h = '<div style=\"color:#d68585;font-weight:bold;border-bottom:1px solid #5c2828;padding-bottom:5px;margin-bottom:8px;\">⚔️ ТАКТИЧЕСКИЙ БОЙ // РАУНД ' + c.round + '</div>';\n  h += '<div style=\"font-size:11px;margin-bottom:8px;\">Боец: <b>' + p.name + '</b> (❤️ ' + p.hp + '/' + p.maxHp + ') | Оружие: ' + (activeW ? activeW.n : 'Кулаки') + ' | Броня: ' + totDef + '</div>';\n  h += '<div style=\"background:#1a0d0d;border:1px solid #5c2828;padding:8px;margin-bottom:10px;\">';\n  c.enemies.forEach((e, i) => {\n    h += '<div style=\"font-size:11px;margin-bottom:4px;color:' + (i === 0 ? '#ffb3b3' : '#a87979') + ';\">' + (i === 0 ? '🎯 ' : '') + '<b>' + e.name + '</b> [Ранг ' + e.rank + ' / Ур.' + e.lvl + '] — ❤️ ' + e.hp + '/' + e.maxHp + ' (Урон: ' + e.dmg + ')</div>';\n  });\n  h += '</div><div style=\"display:flex;flex-direction:column;gap:6px;\">';\n  h += '<button class=\"btn btn-primary\" onclick=\"window.STIKS.combatAttack(false)\">🔫 Атаковать цель (бросок 2D6)</button>';\n  if (!c.usedSkill && !p.asInfected) {\n    const sk = p.skillUnlocked ? a.skill : '❓ Что-то учудить (применить в бою!)';\n    h += '<button class=\"btn\" style=\"border-color:#d6b85a;color:#d6b85a;\" onclick=\"window.STIKS.combatAttack(true)\">' + sk + '</button>';\n  }\n  h += '<button class=\"btn btn-danger\" onclick=\"window.STIKS.combatFlee()\">🏃 Попытаться сбежать</button></div>';\n  vp.innerHTML = h;\n}",
-    "renderGame": "function() {\n  const s = this.db.session;\n  if (!s) { this.renderLobby(); return; }\n  if (s.combat) { this.renderCombat(); return; }\n  const vp = document.getElementById('game-viewport');\n  const p = s.players[s.activeIdx];\n  const a = window.STIKS_DB.ARCHETYPES[p.arch];\n  const wt = this.calcWeight(p);\n  let h = '<div style=\"display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#7fa88b;border-bottom:1px solid #2e3b33;padding-bottom:6px;margin-bottom:8px;\"><span>ХОД ' + s.turn + ' // <b>' + p.name + '</b></span><span>[' + (p.x + 1) + ':' + (p.y + 1) + '] ОХ: <b>' + p.stepsLeft + '/' + (p.maxAp || 6) + '</b></span><button class=\"btn\" style=\"flex:0 0 auto;padding:2px 6px;font-size:10px;\" onclick=\"window.STIKS.renderLobby()\">🏠 Лобби</button></div>';\n  if (this.invOpen) {\n    const sl = p.slots || {};\n    const sNames = [['main', '🔫 Основное (2р)'], ['side', '🔫 Короткоствол'], ['melee', '🔪 Ножны'], ['mag', '🔋 Обойма'], ['mod', '🔧 Обвес'], ['armor', '🛡️ Броня'], ['clothes', '🧥 Одежда'], ['boots', '👢 Обувь'], ['bag', '🎒 Рюкзак'], ['talisman', '🍀 Талисман']];\n    h += '<div style=\"background:#090b0a;border:1px solid #5c8f6e;padding:8px;margin-bottom:8px;\"><div style=\"display:flex;justify-content:space-between;font-size:12px;color:#e6f5eb;margin-bottom:6px;\"><b>🎒 ИНВЕНТАРЬ</b><span>Вес: <b style=\"color:' + (wt.cur > wt.max ? '#d68585' : '#7fa88b') + '\">' + wt.cur + '/' + wt.max + ' кг</b></span></div>';\n    sNames.forEach(([key, label]) => {\n      const item = sl[key];\n      h += '<div style=\"display:flex;justify-content:space-between;align-items:center;font-size:11px;background:#111613;padding:4px 6px;margin-bottom:3px;border:1px solid #1f2923;\"><span style=\"color:#7fa88b;\">' + label + ':</span><span>' + (item ? '<b>' + item.n + '</b>' : '<i style=\"color:#4d5c52;\">пусто</i>') + '</span>' + (item ? '<button class=\"btn btn-danger\" style=\"flex:0 0 auto;padding:2px 6px;font-size:9px;\" onclick=\"window.STIKS.unequipSlot(\\'' + key + '\\')\">Снять</button>' : '') + '</div>';\n    });\n    h += '<div style=\"font-size:11px;color:#7fa88b;margin:8px 0 4px 0;\">РЮКЗАК (' + p.inv.length + '):</div>';\n    if (p.inv.length === 0) h += '<div style=\"font-size:11px;color:#687a6e;\">Пусто.</div>';\n    p.inv.forEach((it, idx) => {\n      h += '<div style=\"display:flex;justify-content:space-between;align-items:center;font-size:11px;background:#0e1210;padding:5px 6px;margin-bottom:3px;border:1px solid #2e3b33;\"><span>' + it.n + ' (' + (it.w || 0) + 'кг)' + (it.cal ? ' [' + it.cal + ']' : '') + '</span><div style=\"display:flex;gap:4px;\"><button class=\"btn btn-primary\" style=\"padding:3px 7px;font-size:10px;\" onclick=\"window.STIKS.equipFromInv(' + idx + ')\">' + ((it.cat === 'supply' || it.slot === 'use') ? 'Исп.' : 'Надеть') + '</button><button class=\"btn btn-danger\" style=\"padding:3px 6px;font-size:10px;\" onclick=\"window.STIKS.dropItem(' + idx + ')\">Х</button></div></div>';\n    });\n    h += '<button class=\"btn btn-primary\" style=\"width:100%;margin-top:8px;\" onclick=\"window.STIKS.toggleInv()\">🗺️ К КАРТЕ</button></div>';\n    vp.innerHTML = h;\n    return;\n  }\n  h += '<div style=\"background:#090b0a;border:1px solid #1f2923;padding:6px;margin-bottom:8px;font-size:11px;\">';\n  if (p.actionsCount < 3 && !p.asInfected) {\n    h += '<div style=\"color:#8c9e92;text-align:center;padding:4px;\">[ЛИЦО: ' + a.name.toUpperCase() + '] — действий: ' + p.actionsCount + '/3</div>';\n  } else {\n    const sl = (p.knowsRecipe || p.asInfected) ? 'Споровый баланс' : 'Загадочный недуг';\n    h += '<div style=\"display:grid;grid-template-columns:1fr 1fr;gap:4px;\"><span>❤️ HP: <b>' + p.hp + '/' + p.maxHp + '</b></span><span>💧 Жажда: <b>' + p.water + '</b></span><span>⚡ Бодрость: <b>' + p.stamina + '</b></span><span>✨ Мана: <b>' + p.mana + '</b></span><span style=\"grid-column:span 2;color:#d6b85a;\">☣️ ' + sl + ': <b>' + p.spore + '</b></span></div>';\n  }\n  h += '</div><div style=\"display:grid;grid-template-columns:repeat(9,1fr);gap:2px;background:#050605;padding:4px;border:1px solid #2e3b33;margin-bottom:4px;\">';\n  for (let dy = -4; dy <= 4; dy++) {\n    for (let dx = -4; dx <= 4; dx++) {\n      const gx = p.x + dx, gy = p.y + dy;\n      let bg = '#0e1210', tx = '·', cl = '#2e3b33';\n      if (gx < 0 || gx > 59 || gy < 0 || gy > 59) {\n        bg = '#16241b'; tx = '🚪'; cl = '#5c8f6e';\n      } else {\n        const c = s.grid[gy][gx];\n        if (c.blocked) { bg = '#1f1919'; tx = '⛰️'; cl = '#7a5252'; }\n        else if (c.lootType) { bg = '#141d24'; tx = c.lootType === 'weapon' ? '🔫' : (c.lootType === 'armor' ? '🛡️' : '🎒'); cl = '#6ba4cc'; }\n        const z = s.zombies.find(zm => zm.x === gx && zm.y === gy && !zm.hidden);\n        if (z) { bg = '#2b1414'; tx = '🧟'; cl = '#d68585'; }\n        const pl = s.players.find(plm => plm.x === gx && plm.y === gy && !plm.escaped && !plm.dead);\n        if (pl) { bg = '#2d4a38'; tx = pl.uid === p.uid ? '🧑' : '👥'; cl = '#e6f5eb'; }\n      }\n      h += '<div style=\"height:32px;overflow:hidden;background:' + bg + ';color:' + cl + ';display:flex;align-items:center;justify-content:center;font-size:14px;line-height:1;\">' + tx + '</div>';\n    }\n  }\n  h += '</div><div style=\"font-size:10px;color:#7fa88b;text-align:center;margin-bottom:8px;\">🧑 Вы | 🔫 Оружие | 🛡️ Броня | 🎒 Припасы | 🧟 Враг | ⛰️ Преграда | 🚪 Выход</div>';\n  h += '<div style=\"display:flex;gap:4px;margin-bottom:8px;\">';\n  [['careful', 'Внимат.(3)'], ['fast', 'Быстро(1.5)'], ['run', 'Бегом(1)']].forEach(([mKey, mLabel]) => {\n    const act = p.moveMode === mKey ? 'btn-primary' : '';\n    h += '<button class=\"btn ' + act + '\" style=\"padding:7px 4px;font-size:11px;\" onclick=\"window.STIKS.setMoveMode(\\'' + mKey + '\\')\">' + mLabel + '</button>';\n  });\n  h += '</div><div style=\"display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px;\"><div></div><button class=\"btn\" style=\"padding:12px;font-size:14px;\" onclick=\"window.STIKS.stepPlayer(0,-1)\">▲</button><div></div><button class=\"btn\" style=\"padding:12px;font-size:14px;\" onclick=\"window.STIKS.stepPlayer(-1,0)\">◄</button><button class=\"btn btn-primary\" style=\"padding:12px 4px;font-size:12px;\" onclick=\"window.STIKS.searchCell(false)\">🔍 Поиск (3)</button><button class=\"btn\" style=\"padding:12px;font-size:14px;\" onclick=\"window.STIKS.stepPlayer(1,0)\">►</button><div></div><button class=\"btn\" style=\"padding:12px;font-size:14px;\" onclick=\"window.STIKS.stepPlayer(0,1)\">▼</button><div></div></div>';\n  const sk = p.skillUnlocked ? a.skill : '❓ Что-то учудить';\n  h += '<div style=\"display:flex;gap:4px;\"><button class=\"btn btn-primary\" style=\"font-size:11px;\" onclick=\"window.STIKS.toggleInv()\">🎒 Инв. (' + p.inv.length + ')</button><button class=\"btn\" style=\"font-size:11px;\" onclick=\"window.STIKS.useWeirdSkill()\">' + sk + '</button><button class=\"btn\" style=\"font-size:11px;\" onclick=\"window.STIKS.showProfile()\">👤</button><button class=\"btn btn-primary\" style=\"font-size:11px;\" onclick=\"window.STIKS.nextTurn()\">⏭ Ход</button></div>';\n  if (p.lastKill) {\n    h += '<button class=\"btn btn-danger\" style=\"width:100%;margin-top:6px;font-size:11px;\" onclick=\"window.STIKS.devourEnemy()\">🍖 Поглотить тело врага (весь остаток ОХ)</button>';\n  }\n  vp.innerHTML = h;\n}"
-  }
-};
-window.STIKS_PATCH_DATA = window.STIKS_REMOTE_PATCH;
-
-if (window.STIKS_PATCHER) {
-  if (!window.STIKS_PATCHER.apply) {
-    window.STIKS_PATCHER.apply = function(p) {
-      return typeof p === 'string' ? this.saveAndApplyRaw(p) : this.applyPatchObject(p);
-    };
-  }
-  if (!window.STIKS_PATCHER.boot) {
-    window.STIKS_PATCHER.boot = function() {
-      const ok = this.applyFromStorage();
-      if (!ok && window.STIKS_REMOTE_PATCH) {
-        this.applyPatchObject(window.STIKS_REMOTE_PATCH);
-        return 'Патч: ' + (window.STIKS_REMOTE_PATCH.version || 'v1.1');
+  version: "v1.5-full-combat",
+  DB_SET: {
+    "ARCHETYPES.tatan.phrase": "По щелчку в три пятнадцать, татааань!!!",
+    "ARCHETYPES.kachok.phrase": "Прямиком в ад. Ннахх!!!",
+    "ARCHETYPES.asiat.phrase": "уууиииииаааауауауааа!",
+    "ARCHETYPES.prof.skill": "Опыт с магнием",
+    "ARCHETYPES.prof.phrase": "looks like magnificus magic",
+    "ARCHETYPES.alkash.phrase": "охтыжйоптвойууумааать!",
+    "ARCHETYPES.strip.phrase": "оооой детка! Ты такой сладкий!",
+    "ARCHETYPES.surgeon": {
+      name: "Хирург", stats: { str: 8, agi: 16, spd: 9, end: 7, int: 14, spi: 6 },
+      mult: { str: 1, agi: 2.5, spd: 1, end: 0.8, int: 2, spi: 0.5 },
+      skill: "Вскрытие сухожилий", phrase: "мииилочка! Резать не дозьидайась прьетонита!",
+      hint: "Щелкает невидимым скальпелем.", dar15: "Потрошитель Улья (Без Клятвы, крит x3)"
+    },
+    "ARCHETYPES.nanny": {
+      name: "Воспитательница", stats: { str: 7, agi: 8, spd: 9, end: 12, int: 10, spi: 14 },
+      mult: { str: 0.8, agi: 1, spd: 1, end: 1.5, int: 1.2, spi: 2 },
+      skill: "А ну-ка в угол!", phrase: "опяааать обосралсиии!? Ааа ну ка в угол!",
+      hint: "Грозит пальцем пустоте.", dar15: "Мать-героиня мутантов (Вербовка)"
+    },
+    "ARCHETYPES.cashier": {
+      name: "Кассирша", stats: { str: 8, agi: 13, spd: 11, end: 14, int: 8, spi: 6 },
+      mult: { str: 1, agi: 2, spd: 1.5, end: 2, int: 1, spi: 0.5 },
+      skill: "Галя, у нас отмена!", phrase: "гхаааляаа у нас ооотмеээнааа!!!",
+      hint: "Пикает сканером штрих-кодов.", dar15: "Круглосуточный гипермаркет (Контратаки)"
+    },
+    "ARCHETYPES.gigolo": {
+      name: "Жигало", stats: { str: 10, agi: 14, spd: 13, end: 9, int: 6, spi: 8 },
+      mult: { str: 1.2, agi: 2, spd: 1.5, end: 1, int: 0.8, spi: 1.2 },
+      skill: "Томный взгляд и комплимент", phrase: "Ты погляди какой у меня инструмент!",
+      hint: "Поправляет челку.", dar15: "Неотразимый альфа-самэц (Обморок врагов)"
+    },
+    "ARCHETYPES.schoolgirl": {
+      name: "Школьница", stats: { str: 5, agi: 17, spd: 18, end: 6, int: 9, spi: 5 },
+      mult: { str: 0.5, agi: 2.5, spd: 2.5, end: 0.8, int: 1.2, spi: 1 },
+      skill: "Ультразвуковой визг",
+      phrase: "а ну стоять! Там гугрриморда - он в синергии с Пикачу! Я должна его поймать",
+      hint: "Трясет разбитым телефоном.", dar15: "Чит-код разработчика (Игнор брони)"
+    },
+    "ARCHETYPES.vet": {
+      name: "Ветеринар девушка", stats: { str: 7, agi: 13, spd: 11, end: 10, int: 13, spi: 6 },
+      mult: { str: 0.8, agi: 1.8, spd: 1.2, end: 1.2, int: 1.8, spi: 1 },
+      skill: "А ну-ка дай лапу!", phrase: "А ну-ка дай лапу!",
+      hint: "Роется в сумке в поисках шприца.", dar15: "Хозяйка очереди (50% приручение)"
+    },
+    "SHAME_AMULETS": {
+      kachok: "Розовые трусики с доступом", prof: "Гигантский фаллоимитатор",
+      alkash: "Упаковка слабительного", strip: "Надувной резиновый топор",
+      tatan: "Экшн-камера с солнечной батареей", asiat: "Ботинки 59-го размера",
+      surgeon: "Дешёвый пластиковый водяной пистолетик-брызгалка",
+      nanny: "Вязаная шапочка с бубенчиками",
+      cashier: "Картонный брелок-пищалка «Скидочная карта»",
+      gigolo: "Карманное зеркальце-пудреница с розовыми блёстками",
+      schoolgirl: "Розовый пластмассовый обруч с пружинками и сердечками",
+      vet: "Резиновая пищалка-курица для собак"
+    },
+    "VOICE_CFG.surgeon": { p: 0.85, r: 1.15, pause: 190 },
+    "VOICE_CFG.nanny": { p: 1.45, r: 1.05, pause: 220 },
+    "VOICE_CFG.cashier": { p: 1.32, r: 1.28, pause: 150 },
+    "VOICE_CFG.gigolo": { p: 0.82, r: 0.98, pause: 240 },
+    "VOICE_CFG.schoolgirl": { p: 1.95, r: 1.35, pause: 140 },
+    "VOICE_CFG.vet": { p: 1.58, r: 1.16, pause: 180 }
+  },
+  DB_PUSH: {
+    "CAL_POOL.gear": [
+      { n: "Гигантский фаллоимитатор", d: 0, w: 0.8, slot: "talisman", troll: true, noDrop: true, noDropMsg: "Я не отдам свою прелесть!", cls: 1 },
+      { n: "Экшн-камера с солнечной батареей", d: 0, w: 0.3, slot: "talisman", troll: true, noDrop: true, noDropMsg: "Вспоминает о неприличных видео в памяти и прячет от всех!", cls: 1 },
+      { n: "Ботинки 59-го размера", d: 1, w: 1.5, slot: "talisman", troll: true, cls: 1 },
+      { n: "Упаковка слабительного", d: 0, w: 0.1, slot: "talisman", troll: true, cls: 1 },
+      { n: "Дешёвый пластиковый водяной пистолетик-брызгалка", d: 0, w: 0.2, slot: "talisman", troll: true, noDrop: true, noDropMsg: "У него идеальная баллистика струи!", cls: 1 },
+      { n: "Вязаная шапочка с бубенчиками", d: 1, w: 0.2, slot: "talisman", troll: true, noDrop: true, noDropMsg: "Без шапочки продует уши!", cls: 1 },
+      { n: "Картонный брелок-пищалка «Скидочная карта»", d: 0, w: 0.05, slot: "talisman", troll: true, cls: 1 },
+      { n: "Карманное зеркальце-пудреница с розовыми блёстками", d: 0, w: 0.15, slot: "talisman", troll: true, noDrop: true, noDropMsg: "А как я буду проверять укладку?!", cls: 1 },
+      { n: "Розовый пластмассовый обруч с пружинками и сердечками", d: 0, w: 0.1, slot: "talisman", troll: true, cls: 1 },
+      { n: "Резиновая пищалка-курица для собак", d: 0, w: 0.15, slot: "talisman", troll: true, cls: 1 }
+    ]
+  },
+  ENGINE_SET: {
+    getStepCost(m) { return m === 'careful' ? 3 : (m === 'fast' ? 2 : 1); },
+    isFem(p) { return p && ['tatan','strip','nanny','cashier','schoolgirl','vet'].includes(p.arch) && !p.asInfected; },
+    dropItem(idx) {
+      const s = this.db.session, p = s.players[s.activeIdx], it = p.inv[idx];
+      if (it && it.noDrop) {
+        const m = it.noDropMsg || 'Нельзя выкинуть!';
+        this.log('🚫 ' + m); this.sayAs(p.arch, m); return;
       }
-      return ok ? 'Патч: АКТИВЕН' : 'Ядро: v1.0';
-    };
-  }
-  window.STIKS_PATCHER.applyPatchObject(window.STIKS_REMOTE_PATCH);
-}
+      p.inv.splice(idx, 1); this.log('🗑️ Выброшено: ' + it.n);
+      this.saveDB(); if (this.renderGame) this.renderGame();
+    },
+    unequipSlot(k) {
+      const s = this.db.session, p = s.players[s.activeIdx], it = p.slots && p.slots[k];
+      if (it) {
+        if (it.noDrop) {
+          const m = it.noDropMsg || 'Нельзя снять!';
+          this.log('🚫 ' + m); this.sayAs(p.arch, m); return;
+        }
+        p.inv.push(it); p.slots[k] = null; this.log('↩️ Снято: ' + it.n);
+        this.saveDB(); if (this.renderGame) this.renderGame();
+      }
+    },
