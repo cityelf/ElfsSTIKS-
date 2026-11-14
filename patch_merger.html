@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>S-T-I-K-S // Склейщик патчей</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0b0d0c;
+    color: #c8d6cc;
+    font-family: monospace;
+    padding: 12px;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+  .wrap {
+    max-width: 540px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .header {
+    border: 1px solid #3d4f44;
+    background: #111613;
+    padding: 10px 12px;
+    border-radius: 6px;
+  }
+  .header h1 {
+    font-size: 15px;
+    color: #98d4ae;
+    margin-bottom: 4px;
+  }
+  .header p {
+    font-size: 11px;
+    color: #7fa88b;
+  }
+  .card {
+    border: 1px solid #2e3b33;
+    background: #111613;
+    padding: 10px 12px;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .label {
+    font-size: 12px;
+    font-weight: bold;
+    color: #7fa88b;
+  }
+  input[type="text"] {
+    width: 100%;
+    background: #080a09;
+    border: 1px solid #3d4f44;
+    color: #eef7f1;
+    padding: 8px;
+    font-family: monospace;
+    font-size: 13px;
+    border-radius: 4px;
+  }
+  .file-btn {
+    display: block;
+    width: 100%;
+    text-align: center;
+    background: #1c2e23;
+    border: 1px dashed #4a7a5c;
+    color: #98d4ae;
+    padding: 12px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  input[type="file"] {
+    display: none;
+  }
+  .btn-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  button {
+    flex: 1;
+    background: #18211c;
+    color: #c8d6cc;
+    border: 1px solid #3d4f44;
+    padding: 9px 10px;
+    font-family: monospace;
+    font-size: 12px;
+    font-weight: bold;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  button.primary {
+    background: #244732;
+    border-color: #4a7a5c;
+    color: #eef7f1;
+  }
+  button.danger {
+    background: #381818;
+    border-color: #7a3b3b;
+    color: #ffb3b3;
+    flex: 0 0 auto;
+  }
+  .list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #080a09;
+    border: 1px solid #253029;
+    padding: 6px 8px;
+    border-radius: 4px;
+    gap: 6px;
+    font-size: 11px;
+  }
+  .item-info {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .item-btns {
+    display: flex;
+    gap: 4px;
+    flex: 0 0 auto;
+  }
+  .item-btns button {
+    padding: 3px 7px;
+    font-size: 11px;
+  }
+  .log {
+    background: #080a09;
+    border: 1px solid #253029;
+    padding: 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    max-height: 180px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    color: #9ec4a9;
+  }
+  .err { color: #ff7a7a; }
+  .ok { color: #7ae69c; }
+  .warn { color: #e6c86e; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <h1>🧩 S-T-I-K-S // СКЛЕЙЩИК МИКРО-ПАТЧЕЙ</h1>
+    <p>Автономная сборка 2–15 кусков в единый монолитный патч с проверкой синтаксиса JS/JSON.</p>
+  </div>
+
+  <div class="card">
+    <div class="label">1. ДОБАВИТЬ ЧАСТИ ПАТЧА (.txt / .json / .js)</div>
+    <label class="file-btn" for="file-input">📂 Выбрать файлы (можно сразу несколько)</label>
+    <input id="file-input" type="file" multiple accept=".txt,.json,.js">
+    <div class="list" id="file-list">
+      <div style="color:#687a6e;font-size:11px;">Файлы пока не добавлены. Добавьте части по порядку или пачкой.</div>
+    </div>
+    <div class="btn-row">
+      <button class="danger" onclick="clearAll()">🗑️ Очистить список</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="label">2. ПАРАМЕТРЫ СБОРКИ И ВЫГРУЗКА</div>
+    <input id="ver-input" type="text" value="v1.8.1-merged" placeholder="Версия итогового патча...">
+    <label style="font-size:11px;display:flex;align-items:center;gap:6px;cursor:pointer;">
+      <input id="dedup-raw" type="checkbox" checked>
+      Удалять дублирующиеся блоки RAW_JS при склейке
+    </label>
+    <div class="btn-row">
+      <button class="primary" onclick="buildAndDownload()">⚡ Склеить и скачать .txt</button>
+      <button onclick="copyMerged()">📋 Копировать</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="label">3. ЛОГ ВАЛИДАЦИИ И СБОРКИ</div>
+    <div class="log" id="log-box">Ожидание файлов...</div>
+  </div>
+</div>
+
+<script>
+let chunks = [];
+let lastMergedText = '';
+
+function logMsg(msg, cls) {
+  const box = document.getElementById('log-box');
+  const line = document.createElement('div');
+  if (cls) line.className = cls;
+  line.textContent = msg;
+  box.appendChild(line);
+  box.scrollTop = box.scrollHeight;
+}
+
+function clearLog() {
+  document.getElementById('log-box').innerHTML = '';
+}
+
+function parsePatchRaw(rawText, fileName) {
+  let clean = rawText.replace(/^﻿/, '').trim();
+  clean = clean.replace(/^(?:window\.)?STIKS_(?:REMOTE_PATCH|PATCH_DATA)\s*=\s*/, '');
+  clean = clean.replace(/;+\s*$/, '');
+  try {
+    const obj = new Function('return (' + clean + ')')();
+    if (!obj || typeof obj !== 'object') {
+      throw new Error('Файл не вернул объект патча');
+    }
+    return obj;
+  } catch (e) {
+    throw new Error('Синтаксическая ошибка в ' + fileName + ': ' + e.message);
+  }
+}
+
+function validateFunctions(obj, fileName) {
+  const fnSections = ['ENGINE_SET', 'HOOK_BEFORE', 'HOOK_AFTER'];
+  fnSections.forEach(sec => {
+    if (!obj[sec] || typeof obj[sec] !== 'object') return;
+    Object.keys(obj[sec]).forEach(fnName => {
+      const val = obj[sec][fnName];
+      if (typeof val === 'function') {
+        obj[sec][fnName] = val.toString();
+      } else if (typeof val === 'string') {
+        try {
+          const compiled = new Function('return (' + val + ')')();
+          if (typeof compiled !== 'function') {
+            throw new Error('Ожидалась функция');
+          }
+        } catch (err) {
+          throw new Error('Ошибка в функции ' + sec + '.' + fnName + ' (' + fileName + '): ' + err.message);
+        }
+      }
+    });
+  });
+
+  if (obj.RAW_JS) {
+    const rawStr = typeof obj.RAW_JS === 'function'
+      ? '(' + obj.RAW_JS.toString() + ')()'
+      : String(obj.RAW_JS);
+    try {
+      new Function(rawStr);
+      obj.RAW_JS = rawStr;
+    } catch (err) {
+      throw new Error('Ошибка в RAW_JS (' + fileName + '): ' + err.message);
+    }
+  }
+}
+
+document.getElementById('file-input').addEventListener('change', async function(e) {
+  const files = Array.from(e.target.files || []);
+  if (!files.length) return;
+  files.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+  clearLog();
+
+  for (const f of files) {
+    try {
+      const text = await f.text();
+      const parsed = parsePatchRaw(text, f.name);
+      validateFunctions(parsed, f.name);
+      chunks.push({ name: f.name, size: text.length, data: parsed });
+      logMsg('✅ Загружен и проверен: ' + f.name + ' (' + (text.length / 1024).toFixed(1) + ' КБ)', 'ok');
+      if (parsed.version && chunks.length === 1) {
+        document.getElementById('ver-input').value = parsed.version;
+      }
+    } catch (err) {
+      logMsg('❌ ' + err.message, 'err');
+    }
+  }
+  e.target.value = '';
+  renderList();
+});
+
+function renderList() {
+  const list = document.getElementById('file-list');
+  if (!chunks.length) {
+    list.innerHTML = '<div style="color:#687a6e;font-size:11px;">Файлы пока не добавлены. Добавьте части по порядку или пачкой.</div>';
+    return;
+  }
+  list.innerHTML = chunks.map((c, idx) => {
+    const secs = Object.keys(c.data).filter(k => k !== 'version').join(', ');
+    return '<div class="item">' +
+      '<div class="item-info"><b>#' + (idx + 1) + ' ' + c.name + '</b><br><span style="color:#7fa88b;">[' + (secs || 'пусто') + ']</span></div>' +
+      '<div class="item-btns">' +
+        (idx > 0 ? '<button onclick="moveChunk(' + idx + ',-1)">⬆</button>' : '') +
+        (idx < chunks.length - 1 ? '<button onclick="moveChunk(' + idx + ',1)">⬇</button>' : '') +
+        '<button class="danger" onclick="removeChunk(' + idx + ')">✖</button>' +
+      '</div></div>';
+  }).join('');
+}
+
+function moveChunk(idx, dir) {
+  const target = idx + dir;
+  if (target < 0 || target >= chunks.length) return;
+  const tmp = chunks[idx];
+  chunks[idx] = chunks[target];
+  chunks[target] = tmp;
+  renderList();
+}
+
+function removeChunk(idx) {
+  chunks.splice(idx, 1);
+  renderList();
+}
+
+function clearAll() {
+  chunks = [];
+  lastMergedText = '';
+  renderList();
+  clearLog();
+  logMsg('Список очищен.', 'warn');
+}
+
+function deepMergeObj(target, source) {
+  Object.keys(source).forEach(key => {
+    const sv = source[key];
+    const tv = target[key];
+    if (sv && typeof sv === 'object' && !Array.isArray(sv) && tv && typeof tv === 'object' && !Array.isArray(tv)) {
+      deepMergeObj(tv, sv);
+    } else {
+      target[key] = JSON.parse(JSON.stringify(sv));
+    }
+  });
+}
+
+function mergeAllChunks() {
+  if (!chunks.length) {
+    clearLog();
+    logMsg('⚠️ Нет файлов для склейки.', 'warn');
+    return null;
+  }
+  clearLog();
+  const ver = document.getElementById('ver-input').value.trim() || 'v1.8.1-merged';
+  const dedupRaw = document.getElementById('dedup-raw').checked;
+
+  const result = {
+    version: ver,
+    DB_SET: {},
+    DB_PUSH: {},
+    DB_EDIT: [],
+    ENGINE_SET: {},
+    HOOK_BEFORE: {},
+    HOOK_AFTER: {}
+  };
+
+  const rawList = [];
+
+  chunks.forEach((ch, idx) => {
+    const d = ch.data;
+    logMsg('🔄 Обработка #' + (idx + 1) + ': ' + ch.name + '...');
+
+    if (d.DB_SET && typeof d.DB_SET === 'object') {
+      deepMergeObj(result.DB_SET, d.DB_SET);
+    }
+    if (d.DB_PUSH && typeof d.DB_PUSH === 'object') {
+      Object.keys(d.DB_PUSH).forEach(path => {
+        if (!Array.isArray(result.DB_PUSH[path])) result.DB_PUSH[path] = [];
+        if (Array.isArray(d.DB_PUSH[path])) {
+          result.DB_PUSH[path].push(...JSON.parse(JSON.stringify(d.DB_PUSH[path])));
+        }
+      });
+    }
+    if (Array.isArray(d.DB_EDIT)) {
+      result.DB_EDIT.push(...JSON.parse(JSON.stringify(d.DB_EDIT)));
+    }
+    ['ENGINE_SET', 'HOOK_BEFORE', 'HOOK_AFTER'].forEach(sec => {
+      if (d[sec] && typeof d[sec] === 'object') {
+        Object.keys(d[sec]).forEach(fnName => {
+          if (result[sec][fnName]) {
+            logMsg('  ↪ Перезаписан метод ' + sec + '.' + fnName, 'warn');
+          }
+          result[sec][fnName] = d[sec][fnName];
+        });
+      }
+    });
+    if (d.RAW_JS) {
+      const r = d.RAW_JS.trim();
+      if (!dedupRaw || !rawList.includes(r)) {
+        rawList.push(r);
+      } else {
+        logMsg('  ↪ Пропущен дубль RAW_JS', 'warn');
+      }
+    }
+  });
+
+  if (!Object.keys(result.DB_SET).length) delete result.DB_SET;
+  if (!Object.keys(result.DB_PUSH).length) delete result.DB_PUSH;
+  if (!result.DB_EDIT.length) delete result.DB_EDIT;
+  if (!Object.keys(result.ENGINE_SET).length) delete result.ENGINE_SET;
+  if (!Object.keys(result.HOOK_BEFORE).length) delete result.HOOK_BEFORE;
+  if (!Object.keys(result.HOOK_AFTER).length) delete result.HOOK_AFTER;
+  if (rawList.length) {
+    result.RAW_JS = rawList.join(';\n');
+  }
+
+  const jsonOut = JSON.stringify(result, null, 2);
+  JSON.parse(jsonOut);
+  lastMergedText = jsonOut;
+
+  logMsg('🎉 Сборка завершена успешно!', 'ok');
+  logMsg('📦 Итоговый размер: ' + (jsonOut.length / 1024).toFixed(1) + ' КБ', 'ok');
+  if (result.DB_SET) logMsg('  • DB_SET ключей: ' + Object.keys(result.DB_SET).length);
+  if (result.ENGINE_SET) logMsg('  • ENGINE_SET методов: ' + Object.keys(result.ENGINE_SET).length);
+  if (result.HOOK_AFTER) logMsg('  • HOOK_AFTER хуков: ' + Object.keys(result.HOOK_AFTER).length);
+  return jsonOut;
+}
+
+function buildAndDownload() {
+  try {
+    const out = mergeAllChunks();
+    if (!out) return;
+    const ver = (document.getElementById('ver-input').value.trim() || 'merged').replace(/[^a-zA-Z0-9._-]/g, '_');
+    const fileName = 'stiks_patch_' + ver + '.txt';
+    const blob = new Blob([out], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+    logMsg('💾 Файл сохранён: ' + fileName, 'ok');
+  } catch (e) {
+    logMsg('❌ Ошибка сборки: ' + e.message, 'err');
+  }
+}
+
+async function copyMerged() {
+  try {
+    const out = mergeAllChunks();
+    if (!out) return;
+    await navigator.clipboard.writeText(out);
+    logMsg('📋 Итоговый JSON скопирован в буфер обмена!', 'ok');
+  } catch (e) {
+    logMsg('❌ Не удалось скопировать: ' + e.message, 'err');
+  }
+}
+</script>
+</body>
+</html>
