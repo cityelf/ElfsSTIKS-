@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>S-T-I-K-S // Панель Администратора</title>
+<style>
+  * { box-sizing: border-box; }
+  body { background: #090b0a; color: #c8d6cc; font-family: 'Courier New', monospace; margin: 0; padding: 10px; }
+  .wrapper { max-width: 560px; margin: 0 auto; background: #111513; border: 1px solid #6e2626; padding: 14px; }
+  h1 { font-size: 15px; text-align: center; color: #d6b85a; margin: 0 0 12px 0; border-bottom: 1px solid #6e2626; padding-bottom: 8px; }
+  .card { background: #0c0f0d; border: 1px solid #4a1c1c; padding: 10px; margin-bottom: 10px; }
+  .card-title { font-size: 12px; font-weight: bold; color: #e09a9a; margin-bottom: 8px; border-bottom: 1px dashed #4a1c1c; padding-bottom: 4px; }
+  .row { display: flex; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
+  .btn { background: #1e2622; color: #c8d6cc; border: 1px solid #6e2626; padding: 7px 10px; font-family: inherit; font-size: 11px; cursor: pointer; flex: 1; text-align: center; }
+  .btn:active { background: #3b1515; }
+  .btn-primary { background: #3b1515; border-color: #8f2d2d; color: #f5d6d6; font-weight: bold; }
+  .btn-gold { background: #2b2412; border-color: #8f7432; color: #f0d78c; font-weight: bold; }
+  .btn-danger { background: #2b1414; border-color: #7a2828; color: #ff9e9e; }
+  select, input, textarea { background: #050605; border: 1px solid #4a1c1c; color: #c8d6cc; padding: 6px; font-family: inherit; font-size: 11px; width: 100%; }
+  .log-box { background: #050706; border: 1px solid #3d1c1c; padding: 8px; font-size: 10px; max-height: 120px; overflow-y: auto; color: #b89c9c; }
+  .hero-item { display: flex; justify-content: space-between; align-items: center; background: #080a09; border: 1px solid #3d1c1c; padding: 6px; margin-bottom: 4px; font-size: 11px; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <h1>⚙️ S-T-I-K-S // ПАНЕЛЬ АДМИНИСТРАТОРА</h1>
+
+  <!-- БЛОК 1: СИСТЕМА ГОРЯЧИХ ПАТЧЕЙ -->
+  <div class="card" style="border-color: #8f7432;">
+    <div class="card-title" style="color: #f0d78c;">⚡ СИСТЕМА ГОРЯЧИХ ПАТЧЕЙ (HOT-PATCH)</div>
+    <div id="patch-status" style="font-size: 11px; margin-bottom: 8px; color: #9ec4a9;">Статус: проверка...</div>
+    <div class="row">
+      <button class="btn btn-gold" onclick="pullServerPatch()">🔄 Подтянуть patch.js с сервера</button>
+      <button class="btn btn-danger" style="flex: 0 0 auto;" onclick="clearLocalPatch()">Сброс патча</button>
+    </div>
+
+    <!-- ЗАГРУЗКА ИЗ ФАЙЛА (.TXT / .JSON / .JS) -->
+    <div style="margin-top: 8px; border-top: 1px dashed #4a1c1c; padding-top: 8px;">
+      <input type="file" id="patch-file-input" accept=".txt,.json,.js,text/plain,application/json" style="display: none;" onchange="handlePatchFile(this)">
+      <button class="btn btn-primary" style="width: 100%;" onclick="document.getElementById('patch-file-input').click()">📂 Загрузить патч из файла (.txt / .json)</button>
+    </div>
+
+    <!-- РУЧНАЯ ВСТАВКА (РЕЗЕРВ) -->
+    <div style="margin-top: 8px;">
+      <textarea id="manual-patch" rows="2" placeholder="Или вставьте JSON-код патча вручную..."></textarea>
+      <button class="btn" style="width: 100%; margin-top: 4px;" onclick="applyManualPatch()">✅ Применить из текста</button>
+    </div>
+  </div>
+
+  <!-- БЛОК 2: УПРАВЛЕНИЕ РЕЙДОМ -->
+  <div class="card">
+    <div class="card-title">🗺️ УПРАВЛЕНИЕ АКТИВНЫМ РЕЙДОМ</div>
+    <div id="raid-info" style="font-size: 11px; margin-bottom: 8px; color: #8c9e92;">Активная сессия не найдена.</div>
+    <div class="row" id="raid-controls" style="display: none;">
+      <select id="raid-diff" onchange="changeDiff()">
+        <option value="start">Сложность: Начальная (-2)</option>
+        <option value="std">Сложность: Стандартная (0)</option>
+        <option value="danger">Сложность: Опасная (+1)</option>
+        <option value="nightmare">Сложность: Кошмарная (+2)</option>
+        <option value="hell">Сложность: Пекло (+3)</option>
+      </select>
+    </div>
+    <div class="row" id="raid-actions" style="display: none;">
+      <button class="btn btn-primary" onclick="healSquad()">❤️ Восстановить отряд</button>
+      <button class="btn btn-danger" onclick="abortRaid()">🛑 Сбросить рейд</button>
+    </div>
+  </div>
+
+  <!-- БЛОК 3: ВЫДАЧА ЛУТА В РЕЙД -->
+  <div class="card" id="loot-card" style="display: none;">
+    <div class="card-title">🎁 ВЫДАЧА СНАРЯЖЕНИЯ ИГРОКУ</div>
+    <div class="row">
+      <select id="loot-player"></select>
+      <select id="loot-item"></select>
+    </div>
+    <button class="btn btn-primary" style="width: 100%;" onclick="giveItem()">➕ Выдать предмет в рюкзак</button>
+  </div>
+
+  <!-- БЛОК 4: РЕДАКТОР ФАМИЛИЙ И БОЙЦОВ -->
+  <div class="card">
+    <div class="card-title">👥 ФАМИЛИИ И ПРОФИЛИ БОЙЦОВ</div>
+    <div id="clans-list"></div>
+  </div>
+
+  <!-- БЛОК 5: ЗВУКОВОЙ СТЕНД -->
+  <div class="card">
+    <div class="card-title">🎙️ ТЕСТ ОЗВУЧКИ И ГОЛОСОВ</div>
+    <div class="row">
+      <button class="btn" onclick="testHive()">🔊 Голос Улья</button>
+      <button class="btn btn-gold" onclick="testAll()">🎙️ Все 8 голосов</button>
+      <button class="btn" onclick="scanVoices()">🔍 Список TTS</button>
+    </div>
+  </div>
+
+  <!-- БЛОК 6: БАЗА ДАННЫХ И БЭКАП В ФАЙЛ -->
+  <div class="card">
+    <div class="card-title">💾 БАЗА ДАННЫХ И БЭКАП (JSON)</div>
+    <div class="row">
+      <button class="btn btn-primary" onclick="downloadDBFile()">📥 Скачать бэкап (.json)</button>
+      <button class="btn btn-gold" onclick="document.getElementById('db-file-input').click()">📤 Загрузить из (.json)</button>
+      <input type="file" id="db-file-input" accept=".json,.txt,application/json,text/plain" style="display: none;" onchange="uploadDBFile(this)">
+    </div>
+    <div class="row">
+      <button class="btn" onclick="exportDB()">📋 Текст JSON</button>
+      <button class="btn" onclick="importDB()">✏️ Вставить JSON</button>
+      <button class="btn btn-danger" onclick="wipeDB()">🗑️ Полный сброс</button>
+    </div>
+  </div>
+
+  <div id="admin-log" class="log-box">&gt; Админ-панель инициализирована (защита базы активна).</div>
+  <div style="margin-top: 8px; text-align: center;">
+    <a href="index.html" class="btn btn-primary" style="display: inline-block; text-decoration: none; width: 100%;">🎮 Перейти в игру (index.html)</a>
+  </div>
+</div>
+
+<script src="stiks_db.js"></script>
+<script src="stiks_engine.js"></script>
+<script>
+  const DB_KEY = 'stiks_prod_db';
+  const DB_BACKUP_KEY = 'stiks_prod_db_safe_backup';
+  const PATCH_KEY = 'stiks_active_patch';
+
+  function log(msg) {
+    const b = document.getElementById('admin-log');
+    if (b) b.innerHTML = '&gt; ' + msg + '<br>' + b.innerHTML;
+  }
+
+  function hasFamilies(db) {
+    return !!(db && db.families && typeof db.families === 'object' && Object.keys(db.families).length > 0);
+  }
+
+  function getDB() {
+    try {
+      const raw = localStorage.getItem(DB_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (hasFamilies(parsed) || (parsed && parsed.session)) {
+          return parsed;
+        }
+      }
+      const bakRaw = localStorage.getItem(DB_BACKUP_KEY);
+      if (bakRaw) {
+        const bakParsed = JSON.parse(bakRaw);
+        if (hasFamilies(bakParsed)) {
+          localStorage.setItem(DB_KEY, JSON.stringify(bakParsed));
+          return bakParsed;
+        }
+      }
+      return raw ? JSON.parse(raw) : { families: {}, session: null };
+    } catch (e) {
+      return { families: {}, session: null };
+    }
+  }
+
+  function saveDB(db, allowEmpty) {
+    if (!db || typeof db !== 'object') return;
+    if (!allowEmpty && !hasFamilies(db) && !db.session) {
+      try {
+        const prev = JSON.parse(localStorage.getItem(DB_KEY) || '{}');
+        if (hasFamilies(prev)) {
+          log('🛡️ Заблокирована попытка перезаписи непустой базы пустым объектом.');
+          return;
+        }
+      } catch (e) {}
+    }
+    const serialized = JSON.stringify(db);
+    localStorage.setItem(DB_KEY, serialized);
+    if (hasFamilies(db)) {
+      localStorage.setItem(DB_BACKUP_KEY, serialized);
+    }
+    if (window.STIKS) window.STIKS.db = db;
+    renderAdmin();
+  }
+
+  function syncEngineWithStorage() {
+    const current = getDB();
+    if (window.STIKS) {
+      window.STIKS.db = current;
+      if (typeof window.STIKS.saveDB === 'function') {
+        window.STIKS.saveDB = function() {
+          saveDB(window.STIKS.db, false);
+        };
+      }
+    }
+  }
+
+  function updatePatchStatus() {
+    const el = document.getElementById('patch-status');
+    const raw = localStorage.getItem(PATCH_KEY);
+    if (raw) {
+      try {
+        const p = JSON.parse(raw);
+        const kb = Math.max(1, Math.round(raw.length / 1024));
+        el.innerHTML = `Активен патч: <b style="color:#f0d78c;">${p.version || 'Custom'}</b> (${kb} КБ) — готов к запуску в игре`;
+      } catch (e) {
+        el.innerText = 'Активен пользовательский патч.';
+      }
+    } else {
+      el.innerHTML = 'Активен патч: <b style="color:#7fa88b;">Базовое ядро (v1.0)</b>';
+    }
+  }
+
+  function pullServerPatch() {
+    log('Запрос patch.js с сервера...');
+    const old = document.getElementById('remote-patch-script');
+    if (old) old.remove();
+    const s = document.createElement('script');
+    s.id = 'remote-patch-script';
+    s.src = 'patch.js?t=' + Date.now();
+    s.onload = function() {
+      if (window.STIKS_REMOTE_PATCH) {
+        const currentDB = getDB();
+        localStorage.setItem(PATCH_KEY, JSON.stringify(window.STIKS_REMOTE_PATCH));
+        if (hasFamilies(currentDB)) {
+          localStorage.setItem(DB_KEY, JSON.stringify(currentDB));
+          localStorage.setItem(DB_BACKUP_KEY, JSON.stringify(currentDB));
+        }
+        updatePatchStatus();
+        log('✅ Патч с сервера сохранён в хранилище (база фамилий не затронута). Перейдите в игру.');
+      } else {
+        log('⚠️ Файл patch.js загружен, но объект STIKS_REMOTE_PATCH не найден.');
+      }
+    };
+    s.onerror = function() {
+      log('❌ Ошибка загрузки patch.js (проверьте, залит ли файл в репозиторий).');
+    };
+    document.body.appendChild(s);
+  }
+
+  function processAndActivatePatch(rawText, sourceName) {
+    try {
+      const preservedDB = getDB();
+
+      let clean = rawText.replace(/^﻿/, '').trim();
+      clean = clean.replace(/^(?:window\.)?STIKS_(?:REMOTE_PATCH|PATCH_DATA)\s*=\s*/, '');
+      clean = clean.replace(/;+\s*$/, '');
+
+      const firstBrace = clean.indexOf('{');
+      const lastBrace = clean.lastIndexOf('}');
+      if (firstBrace !== -1 && lastBrace > firstBrace) {
+        clean = clean.substring(firstBrace, lastBrace + 1);
+      }
+
+      const obj = JSON.parse(clean);
+      localStorage.setItem(PATCH_KEY, JSON.stringify(obj));
+
+      if (hasFamilies(preservedDB) || preservedDB.session) {
+        const safeStr = JSON.stringify(preservedDB);
+        localStorage.setItem(DB_KEY, safeStr);
+        if (hasFamilies(preservedDB)) {
+          localStorage.setItem(DB_BACKUP_KEY, safeStr);
+        }
+      }
+
+      updatePatchStatus();
+      renderAdmin();
+      const famCount = Object.keys((preservedDB && preservedDB.families) || {}).length;
+      log(`✅ Патч (${sourceName}) записан! Версия: ${obj.version || 'Custom'}. Фамилий в базе сохранено: ${famCount}. Нажмите «Перейти в игру».`);
+      return true;
+    } catch (e) {
+      log(`❌ Ошибка разбора патча (${sourceName}): ${e.message}`);
+      return false;
+    }
+  }
+
+  function handlePatchFile(input) {
+    const file = input.files && input.files[0];
+    if (!file) return;
+
+    log(`Чтение файла "${file.name}" (${Math.max(1, Math.round(file.size / 1024))} КБ)...`);
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      processAndActivatePatch(e.target.result, file.name);
+      input.value = '';
+    };
+    reader.onerror = function() {
+      log('❌ Не удалось прочитать выбранный файл.');
+      input.value = '';
+    };
+    reader.readAsText(file, 'UTF-8');
+  }
+
+  function applyManualPatch() {
+    const el = document.getElementById('manual-patch');
+    const val = el.value.trim();
+    if (!val) return;
+    if (processAndActivatePatch(val, 'ручной ввод')) {
+      el.value = '';
+    }
+  }
+
+  function clearLocalPatch() {
+    if (confirm('Удалить локальный кэш патча и вернуться к базовому ядру? (Фамилии и прогресс сохранятся)')) {
+      const preservedDB = getDB();
+      localStorage.removeItem(PATCH_KEY);
+      if (hasFamilies(preservedDB) || preservedDB.session) {
+        localStorage.setItem(DB_KEY, JSON.stringify(preservedDB));
+      }
+      location.reload();
+    }
+  }
+
+  function renderAdmin() {
+    syncEngineWithStorage();
+    updatePatchStatus();
+    const db = getDB();
+    const rInfo = document.getElementById('raid-info');
+    const rCtrl = document.getElementById('raid-controls');
+    const rAct = document.getElementById('raid-actions');
+    const lCard = document.getElementById('loot-card');
+
+    if (db.session) {
+      const s = db.session;
+      rInfo.innerHTML = `Ход: <b>${s.turn}</b> | Игроков: <b>${s.players.length}</b> | Заражённых на карте: <b>${s.zombies.length}</b>`;
+      rCtrl.style.display = 'flex';
+      rAct.style.display = 'flex';
+      lCard.style.display = 'block';
+      document.getElementById('raid-diff').value = s.diffKey || 'start';
+
+      const pSel = document.getElementById('loot-player');
+      pSel.innerHTML = s.players.map((p, i) => `<option value="${i}">${p.family} ${p.name}</option>`).join('');
+
+      const iSel = document.getElementById('loot-item');
+      if (iSel.options.length === 0 && window.STIKS_DB && window.STIKS_DB.ITEMS) {
+        const allItems = [];
+        [1, 2, 3, 4].forEach(cls => {
+          const block = window.STIKS_DB.ITEMS[cls];
+          if (!block) return;
+          ['weapon', 'armor', 'supply'].forEach(cat => {
+            if (!block[cat]) return;
+            ['std', 'weak', 'troll', 'luck'].forEach(sub => {
+              (block[cat][sub] || []).forEach(it => {
+                allItems.push({ ...it, cat, cls });
+              });
+            });
+          });
+        });
+        iSel.innerHTML = allItems.map(it => `<option value='${JSON.stringify(it)}'>[Кл.${it.cls}] ${it.n}</option>`).join('');
+      }
+    } else {
+      rInfo.innerText = 'Активный рейд не запущен.';
+      rCtrl.style.display = 'none';
+      rAct.style.display = 'none';
+      lCard.style.display = 'none';
+    }
+
+    const cList = document.getElementById('clans-list');
+    const fams = Object.keys(db.families || {});
+    if (fams.length === 0) {
+      cList.innerHTML = '<div style="font-size:11px;color:#687a6e;">Фамилии ещё не созданы.</div>';
+    } else {
+      let html = '';
+      fams.forEach(fam => {
+        html += `<div style="font-size:11px;color:#9ec4a9;margin:6px 0 4px 0;font-weight:bold;">ФАМИЛИЯ: ${fam}</div>`;
+        (db.families[fam] || []).forEach((h, idx) => {
+          html += `<div class="hero-item">
+            <div><b>${h.name}</b> [Ур.${h.lvl || 0}] (${h.status}) ${h.isInfected ? '☣️' : ''}</div>
+            <div style="display:flex;gap:3px;">
+              <button class="btn" style="padding:3px 6px;font-size:10px;" onclick="unlockHero('${fam.replace(/'/g, "\'")}',${idx})">🔓</button>
+              <button class="btn btn-primary" style="padding:3px 6px;font-size:10px;" onclick="lvlUpHero('${fam.replace(/'/g, "\'")}',${idx})">+Ур</button>
+              <button class="btn" style="padding:3px 6px;font-size:10px;" onclick="toggleInf('${fam.replace(/'/g, "\'")}',${idx})">☣️</button>
+              <button class="btn btn-danger" style="padding:3px 6px;font-size:10px;" onclick="delHero('${fam.replace(/'/g, "\'")}',${idx})">Х</button>
+            </div>
+          </div>`;
+        });
+      });
+      cList.innerHTML = html;
+    }
+  }
+
+  function changeDiff() {
+    const db = getDB();
+    if (!db.session) return;
+    const k = document.getElementById('raid-diff').value;
+    db.session.diffKey = k;
+    if (window.STIKS_DB && window.STIKS_DB.DIFFS && window.STIKS_DB.DIFFS[k]) {
+      db.session.diffMod = window.STIKS_DB.DIFFS[k].mod;
+    }
+    saveDB(db, false);
+    log('Сложность рейда изменена на: ' + k);
+  }
+
+  function healSquad() {
+    const db = getDB();
+    if (!db.session) return;
+    db.session.players.forEach(p => {
+      p.hp = p.maxHp;
+      p.food = p.maxFood || 50;
+      p.water = p.maxWater || 50;
+      p.stamina = p.maxStam || 50;
+      p.spore = p.maxSpore || 50;
+      p.stinkTurns = 0;
+    });
+    saveDB(db, false);
+    log('Весь отряд полностью исцелён и накормлен.');
+  }
+
+  function abortRaid() {
+    if (!confirm('Завершить текущую сессию и разблокировать всех бойцов?')) return;
+    const db = getDB();
+    Object.values(db.families || {}).forEach(arr => arr.forEach(h => { if (h.status === 'in_raid') h.status = 'ready'; }));
+    db.session = null;
+    saveDB(db, false);
+    log('Активный рейд принудительно сброшен.');
+  }
+
+  function giveItem() {
+    const db = getDB();
+    if (!db.session) return;
+    const pIdx = parseInt(document.getElementById('loot-player').value, 10);
+    const it = JSON.parse(document.getElementById('loot-item').value);
+    db.session.players[pIdx].inv.push(it);
+    saveDB(db, false);
+    log(`Выдан предмет [${it.n}] игроку ${db.session.players[pIdx].name}`);
+  }
+
+  function unlockHero(fam, idx) {
+    const db = getDB();
+    db.families[fam][idx].status = 'ready';
+    saveDB(db, false);
+    log('Статус бойца сброшен на ready.');
+  }
+
+  function lvlUpHero(fam, idx) {
+    const db = getDB();
+    const h = db.families[fam][idx];
+    h.lvl = (h.lvl || 0) + 1;
+    h.maxHp = (h.maxHp || 20) + 5;
+    h.hp = h.maxHp;
+    saveDB(db, false);
+    log(`Уровень бойца ${h.name} повышен до ${h.lvl}.`);
+  }
+
+  function toggleInf(fam, idx) {
+    const db = getDB();
+    const h = db.families[fam][idx];
+    h.isInfected = !h.isInfected;
+    saveDB(db, false);
+    log(`Статус заражения ${h.name}: ${h.isInfected}`);
+  }
+
+  function delHero(fam, idx) {
+    if (!confirm('Удалить бойца навсегда?')) return;
+    const db = getDB();
+    db.families[fam].splice(idx, 1);
+    if (db.families[fam].length === 0) {
+      delete db.families[fam];
+    }
+    saveDB(db, true);
+    log('Боец удалён.');
+  }
+
+  function testHive() {
+    if (window.STIKS && window.STIKS.sayAs) {
+      window.STIKS.sayAs('hive', 'Система Улья на связи. Проверка канала синхронизации.');
+    }
+  }
+
+  function testAll() {
+    if (window.STIKS && window.STIKS.testAllVoices) {
+      window.STIKS.testAllVoices();
+    }
+  }
+
+  function scanVoices() {
+    const vs = window.speechSynthesis.getVoices().filter(v => v.lang.toLowerCase().includes('ru'));
+    log('Найдено русских голосов: ' + vs.length);
+    vs.forEach((v, i) => log(`[${i}] ${v.name}`));
+  }
+
+  function downloadDBFile() {
+    const db = getDB();
+    const jsonStr = JSON.stringify(db, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `stiks_backup_${stamp}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    log(`📥 Бэкап базы сохранён в файл stiks_backup_${stamp}.json`);
+  }
+
+  function uploadDBFile(input) {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const parsed = JSON.parse(e.target.result);
+        if (!parsed || typeof parsed !== 'object' || !parsed.families) {
+          throw new Error('Некорректная структура файла бэкапа');
+        }
+        saveDB(parsed, true);
+        const fCnt = Object.keys(parsed.families || {}).length;
+        log(`📤 База восстановлена из файла "${file.name}" (фамилий: ${fCnt}).`);
+      } catch (err) {
+        alert('Ошибка загрузки файла бэкапа: ' + err.message);
+      } finally {
+        input.value = '';
+      }
+    };
+    reader.onerror = function() {
+      alert('Не удалось прочитать файл бэкапа.');
+      input.value = '';
+    };
+    reader.readAsText(file, 'UTF-8');
+  }
+
+  function exportDB() {
+    prompt('Скопируйте JSON базы данных:', JSON.stringify(getDB()));
+  }
+
+  function importDB() {
+    const raw = prompt('Вставьте JSON базы данных:');
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw);
+      saveDB(parsed, true);
+      log('База данных успешно импортирована из текста.');
+    } catch (e) {
+      alert('Ошибка формата JSON!');
+    }
+  }
+
+  function wipeDB() {
+    if (confirm('ВНИМАНИЕ! Это удалит ВСЕ фамилии, героев и прогресс. Продолжить?')) {
+      localStorage.removeItem(DB_KEY);
+      localStorage.removeItem(DB_BACKUP_KEY);
+      renderAdmin();
+      log('База данных и резервная копия полностью очищены.');
+    }
+  }
+
+  window.onload = renderAdmin;
+</script>
+</body>
+</html>
