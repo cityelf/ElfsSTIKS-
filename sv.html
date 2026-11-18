@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>S-T-I-K-S SVG Viewer</title>
+<style>
+:root{--bg:#0b0d0c;--panel:#140e0e;--brd:#6e2626;--acc:#d48a8a;--txt:#e8dede}
+*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,-apple-system,sans-serif}
+body{background:var(--bg);color:var(--txt);padding:8px;display:flex;justify-content:center}
+.app{width:100%;max-width:440px;display:flex;flex-direction:column;gap:8px}
+.hdr{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--brd);padding-bottom:4px}
+.hdr b{color:var(--acc);font-size:14px;letter-spacing:.5px}
+.bar{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.bar2{display:grid;grid-template-columns:1fr 1fr auto;gap:4px;align-items:center}
+button,select{background:var(--panel);color:var(--txt);border:1px solid var(--brd);border-radius:6px;padding:7px 4px;font-size:12px;font-weight:600;cursor:pointer;text-align:center}
+button:active{background:var(--brd)}
+.btn-go{background:#3a1212;border-color:var(--acc);color:#fff}
+.view{width:100%;max-width:360px;min-height:160px;margin:0 auto;border:1px solid var(--brd);border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:auto;padding:8px;position:relative}
+.bg-hive{background:#0b0d0c}
+.bg-light{background:#e5e5e5}
+.bg-grid{background-color:#141414;background-image:linear-gradient(45deg,#222 25%,transparent 25%),linear-gradient(-45deg,#222 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#222 75%),linear-gradient(-45deg,transparent 75%,#222 75%);background-size:16px 16px;background-position:0 0,0 8px,8px -8px,-8px 0}
+.stage{transform-origin:center;transition:transform .15s;display:flex;align-items:center;justify-content:center}
+.stage svg{max-width:100%;height:auto;display:block}
+.stat{font-size:11px;color:var(--acc);background:var(--panel);border:1px solid var(--brd);border-radius:6px;padding:5px 8px;display:flex;justify-content:space-between}
+textarea{width:100%;height:96px;background:var(--panel);color:var(--txt);border:1px solid var(--brd);border-radius:6px;padding:6px;font-size:11px;font-family:monospace;resize:vertical}
+.nav{display:none;justify-content:space-between;align-items:center;gap:6px}
+.nav.on{display:flex}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="hdr"><b>S-T-I-K-S // SVG VIEW</b><span id="cnt" style="font-size:11px;color:#999">0 SVG</span></div>
+  <div class="bar">
+    <button class="btn-go" onclick="render()">Отрисовать</button>
+    <button onclick="pasteBuf()">Буфер</button>
+    <button onclick="document.getElementById('f').click()">Файл</button>
+    <button onclick="clr()">Очистить</button>
+  </div>
+  <div class="bar2">
+    <select id="bg" onchange="setBg()">
+      <option value="bg-hive">Фон: Улей</option>
+      <option value="bg-grid">Фон: Сетка</option>
+      <option value="bg-light">Фон: Светлый</option>
+    </select>
+    <select id="sc" onchange="setSc()">
+      <option value="1">Масштаб: 1x</option>
+      <option value="1.5">Масштаб: 1.5x</option>
+      <option value="2">Масштаб: 2x</option>
+    </select>
+    <button onclick="demo()">Тест</button>
+  </div>
+  <div class="nav" id="nav">
+    <button onclick="step(-1)">◀ Пред.</button>
+    <span id="idx" style="font-size:12px;font-weight:700">1 / 1</span>
+    <button onclick="step(1)">След. ▶</button>
+  </div>
+  <div class="view bg-hive" id="box"><div class="stage" id="stg"></div></div>
+  <div class="stat"><span id="st">Готов к работе</span><span id="vb">viewBox: —</span></div>
+  <textarea id="inp" placeholder="Вставь SVG, JS-код или JSON-патч..."></textarea>
+  <input type="file" id="f" accept=".svg,.txt,.json,.js,.html" hidden onchange="loadFile(this)">
+</div>
+<script>
+let list=[],cur=0;
+function unesc(s){
+  return s.replace(/\\n/g,'\n').replace(/\\t/g,'\t').replace(/\\"/g,'"').replace(/\\'/g,"'").replace(/\\\\/g,'\\');
+}
+function extract(raw){
+  let t=raw.trim();
+  if(!t)return[];
+  if(t.startsWith('{')){
+    try{const j=JSON.parse(t);if(j.RAW_JS)t=j.RAW_JS;}catch(e){t=unesc(t);}
+  }else if(t.includes('\\"')||t.includes('\\n')){t=unesc(t);}
+  const m=t.match(/<svg[\s\S]*?<\/svg>/gi);
+  return m||[];
+}
+function render(){
+  list=extract(document.getElementById('inp').value);
+  cur=0;
+  document.getElementById('cnt').textContent=list.length+' SVG';
+  document.getElementById('nav').className=list.length>1?'nav on':'nav';
+  show();
+}
+function show(){
+  const stg=document.getElementById('stg'),st=document.getElementById('st'),vb=document.getElementById('vb');
+  if(!list.length){stg.innerHTML='';st.textContent='SVG не найден';vb.textContent='viewBox: —';return;}
+  document.getElementById('idx').textContent=(cur+1)+' / '+list.length;
+  stg.innerHTML=list[cur];
+  const s=stg.querySelector('svg');
+  if(!s){st.textContent='Ошибка разметки SVG';vb.textContent='—';return;}
+  const v=s.getAttribute('viewBox')||(s.getAttribute('width')+'x'+s.getAttribute('height'))||'auto';
+  vb.textContent='viewBox: '+v;
+  st.textContent='OK ('+list[cur].length+' симв.)';
+}
+function step(d){if(list.length){cur=(cur+d+list.length)%list.length;show();}}
+async function pasteBuf(){
+  try{
+    const t=await navigator.clipboard.readText();
+    if(t){document.getElementById('inp').value=t;render();}
+  }catch(e){document.getElementById('st').textContent='Вставь в поле ниже (нет доступа к буферу)';document.getElementById('inp').focus();}
+}
+function loadFile(el){
+  const file=el.files[0];if(!file)return;
+  const r=new FileReader();
+  r.onload=e=>{document.getElementById('inp').value=e.target.result;render();el.value='';};
+  r.readAsText(file);
+}
+function clr(){document.getElementById('inp').value='';list=[];show();document.getElementById('cnt').textContent='0 SVG';document.getElementById('nav').className='nav';st.textContent='Очищено';}
+function setBg(){document.getElementById('box').className='view '+document.getElementById('bg').value;}
+function setSc(){document.getElementById('stg').style.transform='scale('+document.getElementById('sc').value+')';}
+function demo(){
+  document.getElementById('inp').value='<svg viewBox="0 0 240 135" xmlns="http://www.w3.org/2000/svg"><rect width="240" height="135" rx="8" fill="#140e0e" stroke="#6e2626" stroke-width="2"/><circle cx="120" cy="67" r="36" fill="none" stroke="#d48a8a" stroke-width="3" stroke-dasharray="10 5"/><text x="120" y="72" fill="#e8dede" font-size="14" font-family="sans-serif" text-anchor="middle">S-T-I-K-S SVG</text></svg>';
+  render();
+}
+</script>
+</body>
+</html>
