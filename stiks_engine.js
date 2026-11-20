@@ -6252,7 +6252,8 @@ setInterval(function() {
         'style="width:auto!important;padding:4px 8px;" ' +
         'onclick="STIKS.settlement.startDuelUI()">' +
              'Бой!</button></div>';
-    }
+      }
     ex.appendChild(wrap);
   };
+})(window);
 })(window);
