@@ -5451,3 +5451,13 @@ window.STIKS = {
     S.renderLobby();
   }
 })(window);
+// === УБИРАЕМ СИМУЛЯТОР ИЗ ОБЫЧНОЙ ИГРЫ ===
+setInterval(function() {
+  const bar = document.getElementById('stiks-fixed-hub-bar');
+  if (bar && bar.children.length > 2) {
+    bar.style.gridTemplateColumns = 'repeat(2,1fr)';
+    bar.innerHTML =
+      '<button class="btn" style="padding:6px 4px;font-size:11px;" onclick="STIKS.openSettlement()">🏘️ Поселение</button>' +
+      '<button class="btn" style="padding:6px 4px;font-size:11px;" onclick="STIKS.openCodex(\'bestiary\')">📖 Дневник</button>';
+  }
+}, 300);
