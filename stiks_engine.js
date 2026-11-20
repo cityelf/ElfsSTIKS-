@@ -6011,9 +6011,11 @@ setInterval(function() {
     const cF = Number(hr.food ?? mF);
     const cS = Number(hr.stamina ?? mS);
     const sp = Number(hr.spores || 0);
+      };
+    }
+  };
+  S.settlement.runBuildingTask = function(hr, task) {
 
-    if (['sawmill', 'forge', 'mine']
-      .includes(task)) {
       const nF = Math.ceil(mF * 0.25);
       const nS = Math.ceil(mS * 0.25);
       if (cF < nF || cS < nS) {
