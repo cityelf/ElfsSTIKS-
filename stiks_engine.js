@@ -5713,25 +5713,7 @@ setInterval(function() {
       '<text x="296" y="146" font-size="8.5" text-anchor="middle" fill="#f3e8ff">Шахта (+2💎)</text></g>',
 
 
-      // 6. Шахта
-      `<g ${dis} onclick="STIKS.`,
-      `settlementAction('mine')">`,
-      '<rect x="246" y="102" width="100" ',
-      'height="50" rx="3" fill="#181622" ',
-      'stroke="#c084fc" stroke-width="1.5"/>',
-      '<path d="M276 134 A20 18 0 0 1 ',
-      '316 134 Z" fill="#09080d" ',
-      'stroke="#c084fc" stroke-width="2"/>',
-      '<polygon points="262,126 266,118 ',
-      '270,126" fill="#38bdf8"/>',
-      '<text x="296" y="146" font-size="8.5" ',
-      'text-anchor="middle" fill="#f3e8ff">',
-      '⛏️ Шахта (+2💎)</text></g>',
-
-      '<text x="180" y="175" font-size="8" ',
-      'text-anchor="middle" fill="#9aa89e">',
-      'Смена: -25% Сыт/Бодр → +2💎 +1 стат',
-      '</text></svg>'
+  
     ].join('');
   };
 })(window);
