@@ -67,7 +67,7 @@ window.STIKS = {
     if (!this.db.families || typeof this.db.families !== 'object') {
       this.db.families = {};
     }
-    this.sanitizeRoster();
+
   },
 
   // =========================================================================
