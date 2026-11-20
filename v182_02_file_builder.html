@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>S-T-I-K-S // Конструктор и склейщик файлов</title>
+<style>
+  :root {
+    --bg: #121214;
+    --card: #1c1c20;
+    --border: #2e2e34;
+    --accent: #d9383a;
+    --accent-hover: #b82b2d;
+    --blue: #2f81f7;
+    --blue-hover: #1f6feb;
+    --text: #e8e8ec;
+    --muted: #94949e;
+    --ok: #2ea043;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 14px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.4;
+  }
+  h1 {
+    font-size: 18px;
+    margin: 0 0 12px 0;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 12px;
+  }
+  label {
+    display: block;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  input[type="text"], select {
+    width: 100%;
+    padding: 10px;
+    background: #101012;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 14px;
+    margin-bottom: 10px;
+  }
+  .btn-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  button {
+    flex: 1 1 auto;
+    padding: 11px 14px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    color: #fff;
+    background: #2d2d35;
+  }
+  button.primary { background: var(--accent); }
+  button.primary:active { background: var(--accent-hover); }
+  button.blue { background: var(--blue); }
+  button.blue:active { background: var(--blue-hover); }
+  button.success { background: var(--ok); }
+  button.small {
+    padding: 6px 10px;
+    font-size: 12px;
+    flex: 0 0 auto;
+  }
+  .dropzone {
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 18px 12px;
+    text-align: center;
+    color: var(--muted);
+    margin-bottom: 10px;
+    cursor: pointer;
+  }
+  .dropzone.drag { border-color: var(--accent); color: var(--text); }
+  .file-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .file-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    background: #141417;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin-bottom: 6px;
+    font-size: 13px;
+  }
+  .file-info {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+  }
+  .file-meta {
+    display: block;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .stats {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 8px;
+  }
+  textarea {
+    width: 100%;
+    height: 140px;
+    background: #101012;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: #c8c8d0;
+    font-family: monospace;
+    font-size: 11px;
+    padding: 8px;
+    margin-top: 8px;
+  }
+  .manual-box {
+    display: none;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--border);
+  }
+  .manual-box.open {
+    display: block;
+  }
+</style>
+</head>
+<body>
+
+<h1>S-T-I-K-S // Конструктор и склейщик файлов</h1>
+
+<div class="panel">
+  <label for="outName">Имя итогового файла (с расширением .js, .html, .json, .txt):</label>
+  <input type="text" id="outName" value="stiks_engine.js" placeholder="Например: stiks_engine.js">
+
+  <label for="sepMode">Разделитель между частями при склейке:</label>
+  <select id="sepMode">
+    <option value="newline" selected>Перенос строки (\n) — для JS / HTML / TXT</option>
+    <option value="none">Без разделителя (стык в стык) — для разрезанных строк</option>
+    <option value="comment">Комментарий-разделитель (// --- PART ---)</option>
+  </select>
+
+  <div class="dropzone" id="dropzone" onclick="document.getElementById('fileInput').click()">
+    Нажмите, чтобы выбрать части файлов (.txt, .js, .html, .json)<br>
+    <small>Файлы автоматически отсортируются по имени (p01, p02, p03...)</small>
+  </div>
+  <input type="file" id="fileInput" multiple style="display:none">
+
+  <div class="btn-row" style="margin-bottom: 8px;">
+    <button class="blue" onclick="pasteFromClipboard()">Вставить из буфера как часть</button>
+    <button onclick="toggleManualPaste()">Ручная вставка текста</button>
+  </div>
+
+  <div class="manual-box" id="manualBox">
+    <label for="manualPartName">Имя фрагмента (необязательно — если пусто, присвоится автоматически):</label>
+    <input type="text" id="manualPartName" placeholder="Например: p01_header.js">
+    <label for="manualText">Вставьте скопированный фрагмент кода или текста:</label>
+    <textarea id="manualText" placeholder="Вставьте код сюда, если браузер не дает прямой доступ к буферу..."></textarea>
+    <div class="btn-row" style="margin-top: 8px;">
+      <button class="success" onclick="addManualPart()">Добавить фрагмент в очередь</button>
+      <button onclick="toggleManualPaste()">Закрыть</button>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button onclick="sortFiles()">Сортировать А-Я</button>
+    <button onclick="clearFiles()">Очистить список</button>
+  </div>
+</div>
+
+<div class="panel">
+  <label>Очередь частей для сборки (<span id="countBadge">0</span>):</label>
+  <ul class="file-list" id="fileList"></ul>
+  <div class="stats" id="statsBar">Общий размер: 0 КБ | Строк: 0</div>
+</div>
+
+<div class="panel">
+  <div class="btn-row">
+    <button class="primary" onclick="buildAndDownload()">Склеить и скачать файл</button>
+    <button class="success" onclick="previewResult()">Предпросмотр начала/конца</button>
+  </div>
+  <textarea id="previewBox" readonly placeholder="Здесь появится проверка первых и последних строк собранного файла..."></textarea>
+</div>
+
+<script>
+  let parts = [];
+  let bufCounter = 1;
+
+  const fileInput = document.getElementById('fileInput');
+  const dropzone = document.getElementById('dropzone');
+
+  fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+
+  dropzone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropzone.classList.add('drag');
+  });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
+  dropzone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropzone.classList.remove('drag');
+    handleFiles(e.dataTransfer.files);
+  });
+
+  function getNextBufferName() {
+    while (true) {
+      const num = String(bufCounter).padStart(2, '0');
+      const candidate = `part_buf_${num}.txt`;
+      bufCounter++;
+      if (!parts.some(p => p.name === candidate)) {
+        return candidate;
+      }
+    }
+  }
+
+  function addTextAsPart(text, customName) {
+    const cleanText = text;
+    if (!cleanText || !cleanText.trim()) {
+      alert('Буфер обмена или поле ввода пусты.');
+      return false;
+    }
+    const name = (customName && customName.trim()) ? customName.trim() : getNextBufferName();
+    const size = new Blob([cleanText]).size;
+    const existingIdx = parts.findIndex(p => p.name === name);
+    const item = { name: name, size: size, text: cleanText };
+    if (existingIdx >= 0) {
+      parts[existingIdx] = item;
+    } else {
+      parts.push(item);
+    }
+    renderList();
+    return true;
+  }
+
+  async function pasteFromClipboard() {
+    if (!navigator.clipboard || !navigator.clipboard.readText) {
+      openManualWithHint();
+      return;
+    }
+    try {
+      const text = await navigator.clipboard.readText();
+      if (!text || !text.trim()) {
+        alert('В буфере обмена нет текста.');
+        return;
+      }
+      addTextAsPart(text, '');
+    } catch (err) {
+      openManualWithHint();
+    }
+  }
+
+  function openManualWithHint() {
+    const box = document.getElementById('manualBox');
+    box.classList.add('open');
+    const area = document.getElementById('manualText');
+    area.focus();
+    alert('Браузер ограничил прямой доступ к буферу (обычно при открытии локального файла с телефона). Вставьте текст в открывшееся поле ниже и нажмите «Добавить фрагмент в очередь».');
+  }
+
+  function toggleManualPaste() {
+    const box = document.getElementById('manualBox');
+    box.classList.toggle('open');
+    if (box.classList.contains('open')) {
+      document.getElementById('manualText').focus();
+    }
+  }
+
+  function addManualPart() {
+    const nameInput = document.getElementById('manualPartName');
+    const textInput = document.getElementById('manualText');
+    if (addTextAsPart(textInput.value, nameInput.value)) {
+      textInput.value = '';
+      nameInput.value = '';
+    }
+  }
+
+  async function handleFiles(fileListObj) {
+    const arr = Array.from(fileListObj);
+    for (const file of arr) {
+      const text = await file.text();
+      const existingIdx = parts.findIndex(p => p.name === file.name);
+      const item = { name: file.name, size: file.size, text: text };
+      if (existingIdx >= 0) {
+        parts[existingIdx] = item;
+      } else {
+        parts.push(item);
+      }
+    }
+    sortFiles();
+    fileInput.value = '';
+  }
+
+  function sortFiles() {
+    parts.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+    renderList();
+  }
+
+  function movePart(idx, dir) {
+    const target = idx + dir;
+    if (target < 0 || target >= parts.length) return;
+    const tmp = parts[idx];
+    parts[idx] = parts[target];
+    parts[target] = tmp;
+    renderList();
+  }
+
+  function removePart(idx) {
+    parts.splice(idx, 1);
+    renderList();
+  }
+
+  function clearFiles() {
+    parts = [];
+    bufCounter = 1;
+    document.getElementById('previewBox').value = '';
+    renderList();
+  }
+
+  function renderList() {
+    const ul = document.getElementById('fileList');
+    ul.innerHTML = '';
+    let totalBytes = 0;
+    let totalLines = 0;
+
+    parts.forEach((p, i) => {
+      totalBytes += p.size;
+      const lines = p.text.split(/\r?\n/).length;
+      totalLines += lines;
+
+      const li = document.createElement('li');
+      li.className = 'file-item';
+      li.innerHTML = `
+        <div class="file-info">
+          <strong>${i + 1}. ${escapeHtml(p.name)}</strong>
+          <span class="file-meta">${(p.size / 1024).toFixed(2)} КБ · ${lines} строк</span>
+        </div>
+        <button class="small" onclick="movePart(${i}, -1)">↑</button>
+        <button class="small" onclick="movePart(${i}, 1)">↓</button>
+        <button class="small" onclick="removePart(${i})">✕</button>
+      `;
+      ul.appendChild(li);
+    });
+
+    document.getElementById('countBadge').textContent = parts.length;
+    document.getElementById('statsBar').textContent =
+      `Общий размер: ${(totalBytes / 1024).toFixed(2)} КБ | Строк: ${totalLines}`;
+  }
+
+  function assembleText() {
+    const mode = document.getElementById('sepMode').value;
+    if (parts.length === 0) return '';
+    if (mode === 'none') {
+      return parts.map(p => p.text).join('');
+    }
+    if (mode === 'comment') {
+      return parts.map(p => `// === PART: ${p.name} ===\n` + p.text).join('\n');
+    }
+    return parts.map(p => p.text).join('\n');
+  }
+
+  function previewResult() {
+    const full = assembleText();
+    const box = document.getElementById('previewBox');
+    if (!full) {
+      box.value = 'Список частей пуст.';
+      return;
+    }
+    const lines = full.split(/\r?\n/);
+    const head = lines.slice(0, 12).join('\n');
+    const tail = lines.slice(-12).join('\n');
+    box.value = `--- НАЧАЛО (первые 12 строк) ---\n${head}\n\n--- КОНЕЦ (последние 12 строк) ---\n${tail}`;
+  }
+
+  function buildAndDownload() {
+    if (parts.length === 0) {
+      alert('Сначала добавьте хотя бы одну часть файла.');
+      return;
+    }
+    const filename = (document.getElementById('outName').value || 'assembled_file.txt').trim();
+    const content = assembleText();
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+  }
+</script>
+</body>
+</html>
