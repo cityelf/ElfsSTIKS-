@@ -6011,9 +6011,10 @@ setInterval(function() {
     const cF = Number(hr.food ?? mF);
     const cS = Number(hr.stamina ?? mS);
     const sp = Number(hr.spores || 0);
-      };
+       };
     }
   };
+})(window);
   S.settlement.runBuildingTask = function(hr, task) {
 
       const nF = Math.ceil(mF * 0.25);
