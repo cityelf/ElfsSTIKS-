@@ -5991,7 +5991,7 @@ setInterval(function() {
     const btn = document.getElementById(
       'stiks-claim-btn'
     );
-    if (btn) {
+       if (btn) {
       btn.onclick = function() {
         ov.remove();
         if (typeof d.onClaim === 'function') {
@@ -5999,6 +5999,6 @@ setInterval(function() {
         }
       };
     }
-   };
+  };
+  };
 })(window);
- 
