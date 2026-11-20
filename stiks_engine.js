@@ -5621,18 +5621,7 @@ window.STIKS = {
           ': +1 к характеристике «' + statNm + '».'
         );
       }
-    });
-
-        inf.stats[statK] = (Number(inf.stats[statK]) || 10) + 1;
-        if (S.recalcLevel) S.recalcLevel(inf);
-        if (S.normalizePlayerStats) S.normalizePlayerStats(inf);
-        S.log(
-          `🧠 [${d1}-${d2}] ${inf.name} сдержал хищный позыв рядом с ${nearHum.name}: ` +
-          `+1 к характеристике «${statNm}».`
-        );
-      }
-    });
-  };
+   
 
   // Подключаем проверку «Жопакусь» в конец хода (nextTurn)
   const prevNextTurn = S.nextTurn;
