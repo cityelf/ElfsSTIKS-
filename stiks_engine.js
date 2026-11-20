@@ -6248,6 +6248,7 @@ setInterval(function() {
         'Бой!</button></div>';
     }
     ex.appendChild(wrap);
-   };
+  };
+  };
   };
 })(window);
