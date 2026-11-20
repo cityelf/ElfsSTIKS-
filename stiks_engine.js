@@ -5771,22 +5771,23 @@ setInterval(function() {
     return map[id] || '';
   };
 
-  S.settlement.applyHealerBuff = function(hr) {
+   S.settlement.applyHealerBuff = function(hr) {
     if (!hr) return 'Герой не выбран.';
     const st = S.settlement.ensureState(hr);
     if (st.healerSelfUsed) {
-      return '⚠️ Обряд уже проведён на этом ур.';
+      return '[!] Обряд уже проведён.';
     }
     const cost = 1 + (hr.isKvaz ? 2 : 0);
     if ((hr.spores || 0) < cost) {
-      return `⚠️ Нужно ${cost} 💎.`;
+      return '[!] Нужно ' + cost + ' 💎.';
     }
     hr.spores -= cost;
     hr.sporans = hr.spores;
     st.healerSelfUsed = true;
     S.normalizePlayerStats(hr);
     hr.hp = Math.min(
-      hr.maxHp, hr.hp + Math.ceil(hr.maxHp * 0.5)
+      hr.maxHp,
+      hr.hp + Math.ceil(hr.maxHp * 0.5)
     );
     hr.food = Math.min(
       hr.maxFood,
@@ -5801,7 +5802,7 @@ setInterval(function() {
       hr.stamina + Math.ceil(hr.maxStamina * 0.5)
     );
     if (S.saveDB) S.saveDB();
-    return `🌿 Обряд Знахаря (-${cost}💎): +50% шкал!`;
+    return '[+] Обряд Знахаря: +50% шкал!';
   };
 
   const prevRend = S.renderSettlementModal;
@@ -5814,7 +5815,6 @@ setInterval(function() {
     );
     const box = modal && modal.firstElementChild;
     if (!box) return;
-
     const hr = S.findHeroByUid(
       S._settlementActiveUid
     );
@@ -5844,28 +5844,24 @@ setInterval(function() {
         'border-top:1px solid #3d1c1c;' +
         'padding-top:6px;';
       const hc = 1 + (hr.isKvaz ? 2 : 0);
-      ex.innerHTML = [
-        '<button class="btn" ',
-        'style="width:100%;border-color:#4ade80;',
-        'color:#bbf7d0;" onclick="STIKS.',
-        'renderSettlementModal(STIKS.settlement.',
-        'applyHealerBuff(STIKS.findHeroByUid(',
-        'STIKS._settlementActiveUid)))">',
-        `🌿 Бафф Знахаря: +50% шкал (${hc}💎)`,
-        '</button>'
-      ].join('');
+      ex.innerHTML =
+        '<button class="btn" style="width:100%;' +
+        'border-color:#4ade80;color:#bbf7d0;" ' +
+        'onclick="STIKS.renderSettlementModal(' +
+        'STIKS.settlement.applyHealerBuff(' +
+        'STIKS.findHeroByUid(' +
+        'STIKS._settlementActiveUid)))">' +
+        'Бафф Знахаря: +50% (' + hc + '💎)</button>';
       box.appendChild(ex);
     }
   };
 })(window);
 
-// === МОДУЛЬ 13-А: ХРАП, ЧАВКАНЬЕ, РАСЧЁТ ===
 (function(G) {
   'use strict';
   const S = G.STIKS = G.STIKS || {};
   S.settlement = S.settlement || {};
 
-  // Авто-восстановление SVG
   setInterval(function() {
     const ns = 'http://' + 'www.w3' +
       '.org/2000/svg';
@@ -5964,38 +5960,31 @@ setInterval(function() {
       'stiks-sett-claim'
     );
     if (old) old.remove();
-
     const ov = document.createElement('div');
     ov.id = 'stiks-sett-claim';
-    ov.style.cssText = [
-      'position:fixed;inset:0;z-index:9800;',
-      'background:rgba(4,6,5,.92);',
-      'display:flex;align-items:center;',
-      'justify-content:center;padding:12px;',
-      'font-family:monospace;color:#d6e5db;'
-    ].join('');
-
-    ov.innerHTML = [
-      '<div style="width:100%;max-width:380px;',
-      'border:1px solid #f59e0b;',
-      'background:#131815;padding:14px;',
-      'border-radius:6px;font-size:11px;">',
-      '<div style="color:#fbbf24;',
-      'font-weight:bold;font-size:12px;',
-      `margin-bottom:8px;">${d.title}</div>`,
-      '<div style="line-height:1.5;',
-      `margin-bottom:10px;">${d.story}</div>`,
-      '<div style="background:#1c241f;',
-      'padding:7px;border:1px solid #355441;',
-      `margin-bottom:10px;color:#86efac;">`,
-      `${d.rewardText}</div>`,
-      '<button id="stiks-claim-btn" ',
-      'class="btn btn-primary" ',
-      'style="width:100%;padding:8px;">',
-      '💰 Забрать награду и рассчитаться',
-      '</button></div>'
-    ].join('');
-
+    ov.style.cssText =
+      'position:fixed;inset:0;z-index:9800;' +
+      'background:rgba(4,6,5,.92);' +
+      'display:flex;align-items:center;' +
+      'justify-content:center;padding:12px;' +
+      'font-family:monospace;color:#d6e5db;';
+    ov.innerHTML =
+      '<div style="width:100%;max-width:380px;' +
+      'border:1px solid #f59e0b;' +
+      'background:#131815;padding:14px;' +
+      'border-radius:6px;font-size:11px;">' +
+      '<div style="color:#fbbf24;' +
+      'font-weight:bold;margin-bottom:8px;">' +
+      d.title + '</div>' +
+      '<div style="line-height:1.5;' +
+      'margin-bottom:10px;">' + d.story + '</div>' +
+      '<div style="background:#1c241f;padding:7px;' +
+      'border:1px solid #355441;' +
+      'margin-bottom:10px;color:#86efac;">' +
+      d.rewardText + '</div>' +
+      '<button id="stiks-claim-btn" ' +
+      'class="btn btn-primary" style="width:100%;">' +
+      'Забрать награду и рассчитаться</button></div>';
     document.body.appendChild(ov);
     const btn = document.getElementById(
       'stiks-claim-btn'
@@ -6009,16 +5998,7 @@ setInterval(function() {
       };
     }
   };
-})(window);
-
-// === МОДУЛЬ 13-Б: СЦЕНАРИИ ЗДАНИЙ ===
-(function(G) {
-  'use strict';
-  const S = G.STIKS = G.STIKS || {};
-  S.settlement = S.settlement || {};
-
-  S.settlement.runBuildingTask =
-  function(hr, task) {
+  S.settlement.runBuildingTask = function(hr, task) {
     if (!hr || S.settlement._busy) return;
     if (S.normalizePlayerStats) {
       S.normalizePlayerStats(hr);
@@ -6036,31 +6016,28 @@ setInterval(function() {
       const nS = Math.ceil(mS * 0.25);
       if (cF < nF || cS < nS) {
         S.renderSettlementModal(
-          '⚠️ Нужно >= 25% Сытости и Бодрости!'
+          '[!] Нужно >= 25% Сытости и Бодрости!'
         );
         return;
       }
-      const sec = 5 + Math.floor(
-        Math.random() * 2
-      );
+      const sec = 5 + Math.floor(Math.random() * 2);
       const snd = {
-        sawmill: 'saw', forge: 'forge',
-        mine: 'mine'
+        sawmill: 'saw', forge: 'forge', mine: 'mine'
       };
       const ttl = {
-        sawmill: '🪚 Лесопилка',
-        forge: '⚒️ Кузница',
-        mine: '⛏️ Шахта'
+        sawmill: 'Лесопилка',
+        forge: 'Кузница',
+        mine: 'Шахта'
       };
       const stMap = {
-        sawmill: `${hr.name} бодро пилил брёвна под визг циркулярки и завалил двор свежими опилками.`,
-        forge: `${hr.name} раздул горн и звонко отковал партию скоб на наковальне.`,
-        mine: `${hr.name} спустился в штрек с киркой и выбил из породы жилу споровых кристаллов.`
+        sawmill: hr.name + ' бодро пилил брёвна под визг циркулярки и завалил двор свежими опилками.',
+        forge: hr.name + ' раздул горн и звонко отковал партию скоб на наковальне.',
+        mine: hr.name + ' спустился в штрек с киркой и выбил из породы жилу споровых кристаллов.'
       };
       S.settlement._busy = true;
       S.settlement.playWorkSound(snd[task]);
       S.renderSettlementModal(
-        `⏳ ${ttl[task]} (${sec}с)...`
+        'Работа: ' + ttl[task] + ' (' + sec + 'с)...'
       );
 
       setTimeout(() => {
@@ -6072,14 +6049,13 @@ setInterval(function() {
           str: 'Сила', agi: 'Ловкость',
           spd: 'Скорость', end: 'Выносливость'
         };
-        const pk = ks.at(Math.floor(
-          Math.random() * ks.length
-        ));
-
+        const pk = ks.at(
+          Math.floor(Math.random() * ks.length)
+        );
         S.settlement.showClaimCard({
-          title: `${ttl[task]} — СМЕНА ОКОНЧЕНА`,
+          title: ttl[task] + ' — СМЕНА ОКОНЧЕНА',
           story: stMap[task],
-          rewardText: `Итог: +2 💎, +1 ${nm[pk]} (-25% Сыт/Бодр)`,
+          rewardText: 'Итог: +2 💎, +1 ' + nm[pk],
           onClaim: () => {
             hr.food = Math.max(0, cF - nF);
             hr.stamina = Math.max(0, cS - nS);
@@ -6092,7 +6068,7 @@ setInterval(function() {
               S.normalizePlayerStats(hr);
             }
             if (S.saveDB) S.saveDB();
-            const m = `✅ ${ttl[task]}: +2💎, +1 ${nm[pk]}.`;
+            const m = '[OK] ' + ttl[task] + ': +2💎!';
             if (S.log) S.log(m);
             S.renderSettlementModal(m);
           }
@@ -6105,15 +6081,15 @@ setInterval(function() {
       const cost = 1 + kv;
       if (sp < cost) {
         S.renderSettlementModal(
-          `⚠️ Нужно ${cost} 💎.`
+          '[!] Нужно ' + cost + ' 💎.'
         );
         return;
       }
       S.settlement.playWorkSound('snack');
       S.settlement.showClaimCard({
-        title: '🥖 ПРОДУКТОВАЯ ЛАВКА',
-        story: `${hr.name} прямо у прилавка с громким хрустом и чавканьем умял свежую лепёшку с вяленым мясом!`,
-        rewardText: `Итог: +50% Сытости | К оплате: -${cost} 💎`,
+        title: 'ПРОДУКТОВАЯ ЛАВКА',
+        story: hr.name + ' у прилавка с громким хрустом и чавканьем умял свежую лепёшку с мясом!',
+        rewardText: '+50% Сытости | Оплата: -' + cost + ' 💎',
         onClaim: () => {
           hr.spores = Math.max(
             0, (hr.spores || 0) - cost
@@ -6123,7 +6099,7 @@ setInterval(function() {
             mF, cF + Math.ceil(mF * 0.5)
           );
           if (S.saveDB) S.saveDB();
-          const m = `🥖 Оплачено (-${cost}💎): +50% сытости.`;
+          const m = '[OK] Оплачено (-' + cost + '💎).';
           if (S.log) S.log(m);
           S.renderSettlementModal(m);
         }
@@ -6135,36 +6111,34 @@ setInterval(function() {
       const cost = 2 + kv;
       if (sp < cost) {
         S.renderSettlementModal(
-          `⚠️ Нужно ${cost} 💎.`
+          '[!] Нужно ' + cost + ' 💎.'
         );
         return;
       }
       const isEat = task === 'canteen';
-      const sec = 5 + Math.floor(
-        Math.random() * 4
-      );
+      const sec = 5 + Math.floor(Math.random() * 4);
       S.settlement._busy = true;
       S.settlement.playWorkSound(
         isEat ? 'eat' : 'rest'
       );
       S.renderSettlementModal(
         isEat
-          ? `🍲 ${hr.name} аппетитно чавкает в Столовой (${sec}с)...`
-          : `💤 ${hr.name} сладко храпит в Гостинице (${sec}с)...`
+          ? hr.name + ' чавкает в Столовой (' + sec + 'с)...'
+          : hr.name + ' храпит в Гостинице (' + sec + 'с)...'
       );
 
       setTimeout(() => {
         S.settlement._busy = false;
         S.settlement.showClaimCard({
           title: isEat
-            ? '🍲 ОБЕД В СТОЛОВОЙ'
-            : '🏨 НОЧЛЕГ В ГОСТИНИЦЕ',
+            ? 'ОБЕД В СТОЛОВОЙ'
+            : 'НОЧЛЕГ В ГОСТИНИЦЕ',
           story: isEat
-            ? `${hr.name} с громким чавканьем выскреб ложкой миску наваристой похлёбки и попросил добавки!`
-            : `${hr.name} так раскатисто храпел на весь этаж, что распугал крыс в подвале, но выспался как младенец!`,
+            ? hr.name + ' с громким чавканьем выскреб ложкой миску наваристой похлёбки!'
+            : hr.name + ' так раскатисто храпел на весь этаж, что распугал крыс в подвале!',
           rewardText: isEat
-            ? `Итог: 100% Сытость, +1 Вын | К оплате: -${cost} 💎`
-            : `Итог: 100% Бодрость, +1 Дух | К оплате: -${cost} 💎`,
+            ? '100% Сытость, +1 Вын | -' + cost + ' 💎'
+            : '100% Бодрость, +1 Дух | -' + cost + ' 💎',
           onClaim: () => {
             hr.spores = Math.max(
               0, (hr.spores || 0) - cost
@@ -6180,9 +6154,7 @@ setInterval(function() {
             if (isEat) hr.food = hr.maxFood;
             else hr.stamina = hr.maxStamina;
             if (S.saveDB) S.saveDB();
-            const m = isEat
-              ? `🍲 Оплачено (-${cost}💎): Вын +1!`
-              : `🏨 Оплачено (-${cost}💎): Дух +1!`;
+            const m = '[OK] Счёт оплачен (-' + cost + '💎)!';
             if (S.log) S.log(m);
             S.renderSettlementModal(m);
           }
@@ -6190,13 +6162,6 @@ setInterval(function() {
       }, sec * 1000);
     }
   };
-})(window);
-
-// === МОДУЛЬ 14: СПАРРИНГ В ПОСЕЛЕНИИ ===
-(function(G) {
-  'use strict';
-  const S = G.STIKS = G.STIKS || {};
-  S.settlement = S.settlement || {};
 
   S.settlement.startDuelUI = function() {
     const a = S.findHeroByUid(
@@ -6205,20 +6170,19 @@ setInterval(function() {
     const sel = document.getElementById(
       'stiks-duel-target'
     );
-    const bUid = sel ? sel.value : '';
-    const b = S.findHeroByUid(bUid);
+    const b = S.findHeroByUid(
+      sel ? sel.value : ''
+    );
     if (!a || !b) {
       S.renderSettlementModal(
-        '⚠️ Выберите соперника другой фамилии.'
+        '[!] Выберите соперника другой фамилии.'
       );
       return;
     }
     const r = S.settlement.runTrainingDuel(a, b);
-    if (!r.ok) {
-      S.renderSettlementModal(`⚠️ ${r.msg}`);
-      return;
-    }
-    const txt = (r.log && r.log.at(0)) || 'Бой окончен';
+    const txt = r.ok
+      ? ((r.log && r.log.at(0)) || 'Бой окончен')
+      : ('[!] ' + r.msg);
     if (S.log) S.log(txt);
     S.renderSettlementModal(txt);
   };
@@ -6232,12 +6196,14 @@ setInterval(function() {
       'stiks-settlement-modal'
     );
     const box = modal && modal.firstElementChild;
-    if (!box) return;
-
     const hr = S.findHeroByUid(
       S._settlementActiveUid
     );
-    if (!hr) return;
+    const ex = document.getElementById('sett-extra');
+    if (!box || !hr || !ex ||
+      document.getElementById('stiks-duel-box')) {
+      return;
+    }
 
     const rivals = [];
     const fams = (S.db && S.db.families) || {};
@@ -6252,42 +6218,34 @@ setInterval(function() {
       });
     });
 
-    const ex = document.getElementById('sett-extra');
-    if (!ex || document.getElementById(
-      'stiks-duel-box'
-    )) return;
-
     const wrap = document.createElement('div');
     wrap.id = 'stiks-duel-box';
     wrap.style.cssText = 'margin-top:6px;' +
       'padding:6px;border:1px solid #5c2828;' +
       'background:#140e0e;';
-
     if (!rivals.length) {
-      wrap.innerHTML = '<div style="color:#8a7272;' +
-        'font-size:10px;">🥊 Спарринг: создайте ' +
-        'бойца в другой фамилии.</div>';
+      wrap.innerHTML =
+        '<div style="color:#8a7272;font-size:10px;">' +
+        'Спарринг: создайте бойца в другой фамилии.</div>';
     } else {
       const opts = rivals.map(rv =>
-        `<option value="${rv.uid}">` +
-        `${rv.family} ${rv.name} (Ур.${rv.lvl || 0})` +
-        `</option>`
+        '<option value="' + rv.uid + '">' +
+        rv.family + ' ' + rv.name +
+        ' (Ур.' + (rv.lvl || 0) + ')</option>'
       ).join('');
       const cost = 2 + (hr.isKvaz ? 2 : 0);
-      wrap.innerHTML = [
-        '<div style="color:#ff9e9e;',
-        'font-weight:bold;margin-bottom:4px;">',
-        `🥊 Тренировочный спарринг (${cost}💎):</div>`,
-        '<div style="display:flex;gap:5px;">',
-        '<select id="stiks-duel-target" ',
-        'style="flex:1;background:#0b0d0c;',
-        'color:#d6e5db;border:1px solid #6e2626;',
-        `padding:4px;">${opts}</select>`,
-        '<button class="btn btn-primary" ',
-        'style="width:auto!important;padding:4px 8px;" ',
-        'onclick="STIKS.settlement.startDuelUI()">',
-        'Бой!</button></div>'
-      ].join('');
+      wrap.innerHTML =
+        '<div style="color:#ff9e9e;font-weight:bold;' +
+        'margin-bottom:4px;">Спарринг (' + cost + '💎):</div>' +
+        '<div style="display:flex;gap:5px;">' +
+        '<select id="stiks-duel-target" style="flex:1;' +
+        'background:#0b0d0c;color:#d6e5db;' +
+        'border:1px solid #6e2626;padding:4px;">' +
+        opts + '</select>' +
+        '<button class="btn btn-primary" ' +
+        'style="width:auto!important;padding:4px 8px;" ' +
+        'onclick="STIKS.settlement.startDuelUI()">' +
+        'Бой!</button></div>';
     }
     ex.appendChild(wrap);
   };
