@@ -5999,7 +5999,8 @@ setInterval(function() {
         }
       };
     }
-  };
+   };
+})(window);
   S.settlement.runBuildingTask = function(hr, task) {
     if (!hr || S.settlement._busy) return;
     if (S.normalizePlayerStats) {
