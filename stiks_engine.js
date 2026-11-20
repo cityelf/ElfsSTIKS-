@@ -5560,23 +5560,23 @@ window.STIKS = {
         hum.stats[statK] = (Number(hum.stats[statK]) || 10) + 3;
         if (S.recalcLevel) S.recalcLevel(hum);
         if (S.normalizePlayerStats) S.normalizePlayerStats(hum);
-        S.log(
-          `🧊 [1-1] ${hum.name} вообще не вспотел рядом с заражённым ${nearInf.name}! ` +
-          `Железные нервы: +3 к характеристике «${statNm}»!`
+              S.log(
+          '[1-1] 🧊 ' + hum.name + ' вообще не вспотел рядом с заражённым ' + nearInf.name + '! ' +
+          'Железные нервы: +3 к характеристике «' + statNm + '»!'
         );
       } else if (d1 === 6 && d2 === 6) {
         hum.stinkTurns = 10;
         S.log(
-          `💩 [6-6] Заканчивая зевать, ${nearInf.name} громко клацает зубами — а ${hum.name} ` +
-          `от неожиданности раздувает штаны под задними карманами! Получен дебафф «Вонь» на 10 ходов.`
+          '[6-6] 💩 Заканчивая зевать, ' + nearInf.name + ' громко клацает зубами — а ' + hum.name +
+          ' от неожиданности раздувает штаны под задними карманами! Получен дебафф «Вонь» на 10 ходов.'
         );
       } else {
         hum.stats[statK] = (Number(hum.stats[statK]) || 10) + 1;
         if (S.recalcLevel) S.recalcLevel(hum);
         if (S.normalizePlayerStats) S.normalizePlayerStats(hum);
         S.log(
-          `💦 [${d1}-${d2}] ${hum.name} обливается потом, но сдерживает страх рядом с ${nearInf.name}: ` +
-          `+1 к характеристике «${statNm}».`
+          '[' + d1 + '-' + d2 + '] 💦 ' + hum.name + ' обливается потом, но сдерживает страх рядом с ' + nearInf.name +
+          ': +1 к характеристике «' + statNm + '».'
         );
       }
     });
@@ -5597,8 +5597,8 @@ window.STIKS = {
         if (S.recalcLevel) S.recalcLevel(inf);
         if (S.normalizePlayerStats) S.normalizePlayerStats(inf);
         S.log(
-          `🧊 [1-1] Особый заражённый ${inf.name} полностью подавил голод Улья: ` +
-          `утроенный бонус +3 к характеристике «${statNm}»!`
+          '[1-1] 🧊 Особый заражённый ' + inf.name + ' полностью подавил голод Улья: ' +
+          'утроенный бонус +3 к характеристике «' + statNm + '»!'
         );
       } else if (d1 === 6 && d2 === 6) {
         const biteDmg = Math.max(
@@ -5609,10 +5609,20 @@ window.STIKS = {
           inf.name, nearHum.name, biteDmg
         );
         S.log(
-          `🦷 [6-6] ЖОПАКУСЬ! ${inf.name} не сдержался и вцепился в задницу ${nearHum.name} ` +
-          `на -${biteDmg} ОЗ мимо брони!${svgHtml}`
+          '[6-6] 🦷 ЖОПАКУСЬ! ' + inf.name + ' не сдержался и вцепился в задницу ' + nearHum.name +
+          ' на -' + biteDmg + ' ОЗ мимо брони!' + svgHtml
         );
       } else {
+        inf.stats[statK] = (Number(inf.stats[statK]) || 10) + 1;
+        if (S.recalcLevel) S.recalcLevel(inf);
+        if (S.normalizePlayerStats) S.normalizePlayerStats(inf);
+        S.log(
+          '[' + d1 + '-' + d2 + '] 🧠 ' + inf.name + ' сдержал хищный позыв рядом с ' + nearHum.name +
+          ': +1 к характеристике «' + statNm + '».'
+        );
+      }
+    });
+
         inf.stats[statK] = (Number(inf.stats[statK]) || 10) + 1;
         if (S.recalcLevel) S.recalcLevel(inf);
         if (S.normalizePlayerStats) S.normalizePlayerStats(inf);
