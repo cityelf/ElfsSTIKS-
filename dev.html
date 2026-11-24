@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>S-T-I-K-S // DEV v2.2 (Ядро zopa.js)</title>
+  <title>S-T-I-K-S // DEV v2.3 (Ядро zopa.js)</title>
   <style>
     * { box-sizing: border-box; }
     body { background: #0b0d0c; color: #c8d6cc; font-family: 'Courier New', monospace; margin: 0; padding: 10px; }
@@ -15,7 +15,7 @@
     .btn-primary { background: #3b1515; border-color: #8f2d2d; color: #f5d6d6; font-weight: bold; }
     .btn-ok { background: #153322; border-color: #2e7d4f; color: #b6f5cf; font-weight: bold; }
     .btn-danger { background: #2b1414; border-color: #5c2828; color: #d68585; }
-    #game-viewport { min-height: 280px; background: #0e1210; border: 1px solid #6e2626; padding: 10px; border-radius: 4px; }
+    #game-viewport { min-height: 290px; background: #0e1210; border: 1px solid #6e2626; padding: 10px; border-radius: 4px; }
     .log-box { margin-top: 10px; background: #070908; border: 1px solid #3d1c1c; padding: 8px; font-size: 11px; max-height: 125px; overflow-y: auto; color: #b5a3a3; line-height: 1.35; }
     .top-controls { display: flex; gap: 5px; margin-bottom: 8px; flex-wrap: wrap; }
     .patch-badge { font-size: 10px; color: #7dd3fc; text-align: right; margin-bottom: 6px; }
@@ -24,8 +24,8 @@
 </head>
 <body>
   <div class="wrapper">
-    <h1>S-T-I-K-S // DEV v2.2 (ЯДРО ZOPA.JS)</h1>
-    <div id="patch-status" class="patch-badge">Ядро: zopa.js v2.2.4</div>
+    <h1>S-T-I-K-S // DEV v2.3 (ЯДРО ZOPA.JS)</h1>
+    <div id="patch-status" class="patch-badge">Ядро: zopa.js v2.3</div>
     <div class="top-controls">
       <button id="btn-voice-toggle" class="btn" onclick="STIKS.toggleVoice()">🔊 Озвучка: ВКЛ</button>
       <button class="btn" style="border-color:#38bdf8;color:#7dd3fc;font-weight:bold;" onclick="STIKS.cloneFromProd()">📥 Из проды</button>
@@ -34,19 +34,20 @@
       <input type="file" id="load-heroes-input" accept=".json,.txt,application/json" style="display:none;" onchange="STIKS.importSave(this)">
     </div>
     <div id="game-viewport"></div>
-    <div id="sys-log" class="log-box">&gt; Чистое ядро zopa.js готово.</div>
+    <div id="sys-log" class="log-box">&gt; Чистое ядро zopa.js v2.3 готово.</div>
   </div>
 
-  <script src="zopa.js?v=2.2.4"></script>
-  <script src="stiks_content.js?v=2.2.4"></script>
+  <script src="zopa.js?v=2.3.0"></script>
+  <script src="stiks_content.js?v=2.3.0"></script>
   <script>
     window.addEventListener('load', function() {
       if (!window.STIKS) return;
       window.STIKS.loadDB();
       if (window.STIKS_CONTENT) window.STIKS_CONTENT.bindHooks();
       const badge = document.getElementById('patch-status');
-      if (badge) badge.innerText = 'Ядро: zopa.js v2.2.4 • Content v' + (window.STIKS_CONTENT ? window.STIKS_CONTENT.version : '?');
-      if (window.STIKS.db && window.STIKS.db.session) window.STIKS.renderGame();
+      if (badge) badge.innerText = 'Ядро: zopa.js v2.3 • Content v' + (window.STIKS_CONTENT ? window.STIKS_CONTENT.version : '?');
+      if (window.STIKS.db && window.STIKS.db.session && !window.STIKS.db.session.combat) window.STIKS.renderGame();
+      else if (window.STIKS.db && window.STIKS.db.session && window.STIKS.db.session.combat) window.STIKS.renderCombat();
       else window.STIKS.renderLobby();
     });
   </script>
