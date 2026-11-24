@@ -25,7 +25,7 @@
 <body>
   <div class="wrapper">
     <h1>S-T-I-K-S // DEV v2.2 (ЯДРО ZOPA.JS)</h1>
-    <div id="patch-status" class="patch-badge">Ядро: zopa.js v2.2</div>
+    <div id="patch-status" class="patch-badge">Ядро: zopa.js v2.2.4</div>
     <div class="top-controls">
       <button id="btn-voice-toggle" class="btn" onclick="STIKS.toggleVoice()">🔊 Озвучка: ВКЛ</button>
       <button class="btn" style="border-color:#38bdf8;color:#7dd3fc;font-weight:bold;" onclick="STIKS.cloneFromProd()">📥 Из проды</button>
@@ -37,15 +37,15 @@
     <div id="sys-log" class="log-box">&gt; Чистое ядро zopa.js готово.</div>
   </div>
 
-  <script src="zopa.js"></script>
-  <script src="stiks_content.js"></script>
+  <script src="zopa.js?v=2.2.4"></script>
+  <script src="stiks_content.js?v=2.2.4"></script>
   <script>
     window.addEventListener('load', function() {
       if (!window.STIKS) return;
       window.STIKS.loadDB();
       if (window.STIKS_CONTENT) window.STIKS_CONTENT.bindHooks();
       const badge = document.getElementById('patch-status');
-      if (badge) badge.innerText = 'Ядро: zopa.js v2.2 • Content v' + (window.STIKS_CONTENT ? window.STIKS_CONTENT.version : '?');
+      if (badge) badge.innerText = 'Ядро: zopa.js v2.2.4 • Content v' + (window.STIKS_CONTENT ? window.STIKS_CONTENT.version : '?');
       if (window.STIKS.db && window.STIKS.db.session) window.STIKS.renderGame();
       else window.STIKS.renderLobby();
     });
