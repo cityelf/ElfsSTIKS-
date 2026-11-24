@@ -4489,3 +4489,77 @@
     window.addEventListener('load', patchBsimDirect);
   }
 })(typeof window !== 'undefined' ? window : globalThis);
+// ============================================================================
+// STIKS_CONTENT // ФИНАЛЬНЫЙ ПЕРЕХВАТ UI.actSkill ПОСЛЕ ВСЕХ ТАЙМЕРОВ (300ms)
+// ============================================================================
+(function(global) {
+  'use strict';
+  const C = global.STIKS_CONTENT;
+  if (!C) return;
+
+  function installFinalSkillRouter() {
+    const CORE = global.STIKS_COMBAT_CORE;
+    const UI = global.BSIM_UI;
+    if (!CORE || !UI) return;
+
+    UI.actSkill = function() {
+      const st = CORE.state;
+      const p = st && st.player;
+      if (!st || !p || st.busy || st.finished || p._skillUsedBattle || p.skillUsed) return;
+
+      const selVal = (typeof document !== 'undefined' && document.getElementById('sim-arch'))
+        ? document.getElementById('sim-arch').value : '';
+      const archKey = p.archKey || p.arch || selVal || 'kachok';
+      p.arch = p.archKey = archKey;
+
+      if (archKey === 'alkash' || archKey === 'cashier') {
+        UI.log(`⚡ Навык <b>[${p.skill}]</b> — автоматический триггер (1 раз за бой при ударе врага)!`);
+        return;
+      }
+
+      const alive = (st.enemies || []).filter(e => !e.dead);
+      if (!alive.length) return;
+
+      p.skillUsed = true;
+      p._skillUsedBattle = true;
+
+      const strongest = alive.slice().sort((a, b) => (b.rank - a.rank) || (b.hp - a.hp))[0];
+      const flatAtk = ((p.stats.str || 10) * 0.7 + (p.stats.agi || 10) * 0.5 + (p.stats.int || 10) * 0.4 + (p.stats.spi || 10) * 0.4) * (p.buff || 1);
+
+      const ctx = {
+        p, st, alive, strongest, flatAtk,
+        popPlayer: (t) => UI.popBack('u-player', true, t, 'float-skill'),
+        popEnemy: (e, t) => UI.popBack('u-' + e.id, false, t, 'float-crit'),
+        dealDamage(en, raw, txt) {
+          const d = Math.max(1, Math.round(raw));
+          if (st.mode === 'sandbox') {
+            en.hp = Math.max(1, (en.hp || 10) - d);
+          } else {
+            en.hp = Math.max(0, (en.hp || 10) - d);
+            if (en.hp <= 0) en.dead = true;
+          }
+          if (txt) UI.popBack('u-' + en.id, false, txt + (en.dead ? ' 💀' : ''), 'float-crit');
+        },
+        log: UI.log.bind(UI)
+      };
+
+      CORE.grantCombatXp('spi', 1);
+      if (global.BSIM_AUDIO) global.BSIM_AUDIO.playSfx('shout');
+      UI.showSkillBanner(p.ico, p.skill, p.phrase);
+
+      const fn = (C.ARCH_SKILLS && C.ARCH_SKILLS[archKey]) || C.ARCH_SKILLS.kvaz;
+      fn(ctx);
+
+      UI.renderBattle();
+      UI.checkBattleEnd();
+    };
+  }
+
+  installFinalSkillRouter();
+  if (typeof window !== 'undefined') {
+    window.addEventListener('load', () => {
+      installFinalSkillRouter();
+      setTimeout(installFinalSkillRouter, 300);
+    });
+  }
+})(typeof window !== 'undefined' ? window : globalThis);
