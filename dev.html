@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>S-T-I-K-S // DEV v3.0 (zopa.js + stiks_content.js)</title>
+  <title>S-T-I-K-S // DEV v3.0.4 (zopa.js + stiks_content.js)</title>
   <style>
     * { box-sizing: border-box; }
     body { background: #0b0d0c; color: #c8d6cc; font-family: 'Courier New', monospace; margin: 0; padding: 10px; }
@@ -24,20 +24,20 @@
 </head>
 <body>
   <div class="wrapper">
-    <h1>S-T-I-K-S // УЛЕЙ (DEV v3.0)</h1>
+    <h1>S-T-I-K-S // УЛЕЙ (DEV v3.0.4)</h1>
     <div id="patch-status" class="patch-badge">Загрузка модулей...</div>
     <div class="top-controls">
       <button id="btn-voice-toggle" type="button" class="btn" onclick="STIKS.toggleVoice()">🔊 Голос: ВКЛ</button>
       <button id="btn-export-save" type="button" class="btn btn-primary" onclick="STIKS.exportSave()">💾 Сейв</button>
       <button type="button" class="btn" onclick="document.getElementById('inp-import-save').click()">📂 Загрузить</button>
-      <input type="file" id="inp-import-save" accept=".json,.txt,application/json" style="display:none;" onchange="STIKS.importSave(this.files && this.files[0])">
+      <input type="file" id="inp-import-save" accept=".json,.txt,application/json" style="display:none;" onchange="STIKS.importSave(this.files && this.files.at(0))">
     </div>
     <div id="game-viewport"></div>
     <div id="sys-log" class="log-box">&gt; Инициализация чистого ядра...</div>
   </div>
 
-  <script src="zopa.js?v=3.0.1"></script>
-  <script src="stiks_content.js?v=3.0.1"></script>
+  <script src="zopa.js?v=3.0.4"></script>
+  <script src="stiks_content.js?v=3.0.4"></script>
   <script>
     window.addEventListener('load', function() {
       const badge = document.getElementById('patch-status');
