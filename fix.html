@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>JS Code Cleaner & Validator</title>
+<style>
+  :root{--bg:#0d1117;--panel:#161b22;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--accent:#2f81f7;--green:#3fb950;--red:#f85149;--yellow:#d29922}
+  *{box-sizing:border-box}
+  body{margin:0;padding:20px;background:var(--bg);color:var(--text);font-family:system-ui,monospace;line-height:1.4}
+  .container{max-width:960px;margin:0 auto}
+  .dropzone{border:2px dashed var(--border);border-radius:10px;padding:30px;text-align:center;background:var(--panel);cursor:pointer}
+  .dropzone:hover,.dropzone.drag{border-color:var(--accent);background:#1c2432}
+  .btn{background:var(--accent);color:#fff;border:none;padding:9px 16px;border-radius:6px;font-weight:600;cursor:pointer;font-size:13px}
+  .btn:disabled{background:var(--border);cursor:not-allowed;opacity:.5}
+  .btn-green{background:var(--green);color:#000}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:14px;margin-top:14px}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}
+  .stat-box{background:var(--bg);padding:8px 10px;border-radius:6px;border:1px solid var(--border)}
+  .stat-val{font-size:17px;font-weight:700;margin-top:3px}
+  .ok{color:var(--green)}.err{color:var(--red)}.warn{color:var(--yellow)}
+  .dup-item{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:8px}
+  .dup-variant{display:flex;align-items:center;gap:8px;padding:6px 8px;background:#13171f;border-radius:4px;margin-top:5px;font-size:13px}
+  .dup-variant.to-delete{border-left:3px solid var(--red);background:rgba(248,81,73,.1)}
+  .dup-variant.to-keep{border-left:3px solid var(--green)}
+  .options{display:flex;gap:16px;flex-wrap:wrap;margin:10px 0;font-size:13px}
+  label{cursor:pointer;display:flex;align-items:center;gap:5px}
+</style>
+</head>
+<body>
+<div class="container">
+  <h2 style="margin:0 0 12px;font-size:18px">🛠️ Анализатор и очиститель JS-кода</h2>
+  <div class="dropzone" id="dropzone">
+    <div><strong>Перетащите .js файл сюда</strong> или нажмите для выбора</div>
+    <div style="color:var(--muted);font-size:12px;margin-top:4px">Локальная обработка в браузере</div>
+    <input type="file" id="fileInput" accept=".js,.txt" style="display:none">
+  </div>
+  <div id="workspace" style="display:none">
+    <div class="card">
+      <div class="stats" id="statsGrid"></div>
+      <div class="options">
+        <label><input type="checkbox" id="optInvisible" checked> Удалить невидимые символы (BOM, Zero-Width)</label>
+        <label><input type="checkbox" id="optTrailing" checked> Убрать пробелы в концах строк</label>
+        <label><input type="checkbox" id="optEmptyLines" checked> Сжать лишние пустые строки</label>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <button class="btn btn-green" id="btnBuild">⚡ Применить исправления и проверить синтаксис</button>
+        <button class="btn" id="btnDownload" disabled>💾 Скачать исправленный .js</button>
+        <span id="buildStatus" style="font-size:13px"></span>
+      </div>
+    </div>
+    <div class="card" id="syntaxCard">
+      <h3 style="margin:0 0 6px;font-size:14px">🔍 Диагностика синтаксиса и скобок</h3>
+      <div id="syntaxReport"></div>
+    </div>
+    <div class="card">
+      <h3 style="margin:0 0 6px;font-size:14px">📑 Дубликаты методов и функций</h3>
+      <div style="color:var(--muted);font-size:12px;margin-bottom:8px">Отмеченные блоки будут <b>удалены</b> (по умолчанию оставляется последняя версия).</div>
+      <div id="dupsList"></div>
+    </div>
+  </div>
+</div>
+<script>
+let rawCode='',originalFileName='script.js',processedCode='';
+const dz=document.getElementById('dropzone'),fi=document.getElementById('fileInput');
+dz.onclick=()=>fi.click();
+dz.ondragover=e=>{e.preventDefault();dz.classList.add('drag')};
+dz.ondragleave=()=>dz.classList.remove('drag');
+dz.ondrop=e=>{e.preventDefault();dz.classList.remove('drag');if(e.dataTransfer.files.length)loadFile(e.dataTransfer.files[0])};
+fi.onchange=e=>{if(e.target.files.length)loadFile(e.target.files[0])};
+
+function loadFile(file){
+  originalFileName=file.name;
+  const r=new FileReader();
+  r.onload=e=>{
+    rawCode=e.target.result;
+    document.getElementById('workspace').style.display='block';
+    document.getElementById('btnDownload').disabled=true;
+    document.getElementById('buildStatus').textContent='';
+    analyzeCode(rawCode);
+  };
+  r.readAsText(file,'UTF-8');
+}function scanJS(code){
+  const len=code.length,stack=[],errors=[],methods=[];
+  let line=1,col=0,state='NORMAL',braceDepth=0;
+  const isRegexOk=idx=>{
+    let j=idx-1;while(j>=0&&/\s/.test(code[j]))j--;
+    if(j<0)return true;
+    if('(,=:[!&|?{};+-*%^~<>'.includes(code[j]))return true;
+    return /\b(return|typeof|delete|void|throw|in|of|else|case)$/.test(code.slice(Math.max(0,j-10),j+1));
+  };
+  for(let i=0;i<len;i++){
+    const ch=code[i],nx=code[i+1]||'';
+    if(ch==='\n'){line++;col=0}else col++;
+    if(state==='LC'){if(ch==='\n')state='NORMAL';continue}
+    if(state==='BC'){if(ch==='*'&&nx==='/'){state='NORMAL';i++;col++}continue}
+    if(state==='SQ'){if(ch==='\\'){i++;col++;continue}if(ch==="'")state='NORMAL';else if(ch==='\n')errors.push(`Стр. ${line}: незакрытая кавычка '`);continue}
+    if(state==='DQ'){if(ch==='\\'){i++;col++;continue}if(ch==='"')state='NORMAL';else if(ch==='\n')errors.push(`Стр. ${line}: незакрытая кавычка "`);continue}
+    if(state==='RX'){if(ch==='\\'){i++;col++;continue}if(ch==='['){while(++i<len&&code[i]!==']')if(code[i]==='\\')i++;continue}if(ch==='/'||ch==='\n')state='NORMAL';continue}
+    if(state==='TPL'){
+      if(ch==='\\'){i++;col++;continue}
+      if(ch==='`'){state='NORMAL';continue}
+      if(ch==='$'&&nx==='{'){braceDepth++;stack.push({ch:'{',line,col,tpl:1});state='NORMAL';i++;col++}
+      continue;
+    }
+    if(ch==='/'&&nx==='/'){state='LC';i++;col++;continue}
+    if(ch==='/'&&nx==='*'){state='BC';i++;col++;continue}
+    if(ch==="'"){state='SQ';continue}
+    if(ch==='"'){state='DQ';continue}
+    if(ch==='`'){state='TPL';continue}
+    if(ch==='/'&&isRegexOk(i)){state='RX';continue}
+    if(ch==='{'||ch==='('||ch==='['){
+      if(ch==='{'){
+        const before=code.slice(Math.max(0,i-140),i);
+        const m=before.match(/(?:^|[,;\n{])\s*(?:async\s+)?([a-zA-Z_$][\w$]*)\s*\(([^()]*)\)\s*$/);
+        if(m&&!['if','for','while','switch','catch','function'].includes(m)){
+          const sIdx=i-m.length+m.search(/\S/);
+          methods.push({name:m,depth:braceDepth,startIdx:sIdx,startLine:code.slice(0,sIdx).split('\n').length,endIdx:-1,endLine:-1});
+        }
+        braceDepth++;
+      }
+      stack.push({ch,line,col});
+    }else if(ch==='}'||ch===')'||ch===']'){
+      const exp=ch==='}'?'{':(ch===')'?'(':'[');
+      if(!stack.length)errors.push(`Стр. ${line}, поз. ${col}: лишняя «${ch}»`);
+      else{
+        const top=stack.pop();
+        if(top.ch!==exp)errors.push(`Стр. ${line}: ожидалась закрывающая к «${top.ch}» (со стр. ${top.line}), встречена «${ch}»`);
+        if(ch==='}'){
+          braceDepth--;
+          for(let m=methods.length-1;m>=0;m--)if(methods[m].endIdx===-1&&methods[m].depth===braceDepth){methods[m].endIdx=i;methods[m].endLine=line;break}
+          if(top.tpl)state='TPL';
+        }
+      }
+    }
+  }
+  if(state==='TPL')errors.push('Конец файла: не закрыта обратная кавычка `');
+  if(state==='BC')errors.push('Конец файла: не закрыт комментарий /* */');
+  while(stack.length){const u=stack.pop();errors.push(`Стр. ${u.line}, поз. ${u.col}: не закрыта «${u.ch}»`)}
+  return{errors,methods:methods.filter(m=>m.endIdx!==-1),totalLines:line};
+}
+
+function analyzeCode(code){
+  const inv=(code.match(/[\uFEFF\u200B-\u200D\u2060]/g)||[]).length;
+  const{errors,methods,totalLines}=scanJS(code);
+  const groups={};
+  methods.forEach(m=>{const k=m.depth+':'+m.name;(groups[k]=groups[k]||[]).push(m)});
+  const dups=Object.values(groups).filter(g=>g.length>1);
+  const kb=(new Blob([code]).size/1024).toFixed(1);
+  document.getElementById('statsGrid').innerHTML=`
+    <div class="stat-box"><div style="color:var(--muted);font-size:12px">Размер</div><div class="stat-val">${kb} КБ</div></div>
+    <div class="stat-box"><div style="color:var(--muted);font-size:12px">Строк</div><div class="stat-val">${totalLines}</div></div>
+    <div class="stat-box"><div style="color:var(--muted);font-size:12px">Методов</div><div class="stat-val">${methods.length}</div></div>
+    <div class="stat-box"><div style="color:var(--muted);font-size:12px">Дублей</div><div class="stat-val ${dups.length?'warn':'ok'}">${dups.length}</div></div>
+    <div class="stat-box"><div style="color:var(--muted);font-size:12px">Ошибок скобок</div><div class="stat-val ${errors.length?'err':'ok'}">${errors.length}</div></div>`;
+  document.getElementById('syntaxReport').innerHTML=errors.length
+    ?errors.slice(0,15).map(e=>`<div class="err">❌ ${esc(e)}</div>`).join('')
+    :`<div class="ok">✅ Баланс скобок и шаблонов идеален.${inv?` Найдено скрытых символов: <b>${inv}</b>.`:''}</div>`;
+  document.getElementById('dupsList').innerHTML=!dups.length?'<div class="ok">✅ Дублей методов не найдено!</div>':dups.map((g,gi)=>`
+    <div class="dup-item">
+      <div style="display:flex;justify-content:space-between"><span>Метод: <b style="color:var(--accent)">${esc(g.name)}()</b></span><span class="warn">Повторов: ${g.length}</span></div>
+      ${g.map((it,vi)=>{const last=vi===g.length-1;return`
+        <div class="dup-variant ${!last?'to-delete':'to-keep'}" id="v_${gi}_${vi}">
+          <input type="checkbox" ${!last?'checked':''} onchange="tog(${gi},${vi},this.checked)" data-s="${it.startIdx}" data-e="${it.endIdx}" class="dcb">
+          <div><b>Версия #${vi+1}</b> (стр. <b>${it.startLine}–${it.endLine}</b>, ${it.endIdx-it.startIdx+1} симв.) ${last?'<span class="ok">[Оставить]</span>':'<span class="err">[Удалить дубль]</span>'}</div>
+        </div>`}).join('')}
+    </div>`).join('');
+}
+
+function tog(g,v,c){const el=document.getElementById(`v_${g}_${v}`);el.classList.toggle('to-delete',c);el.classList.toggle('to-keep',!c)}
+
+document.getElementById('btnBuild').onclick=()=>{
+  let res=rawCode;
+  const ranges=Array.from(document.querySelectorAll('.dcb:checked')).map(c=>({s:+c.dataset.s,e:+c.dataset.e})).sort((a,b)=>b.s-a.s);
+  ranges.forEach(r=>{
+    let cs=r.s,ce=r.e+1;
+    while(ce<res.length&&/[ \t\r\n]/.test(res[ce]))ce++;
+    if(res[ce]===','){ce++;while(ce<res.length&&/[ \t]/.test(res[ce]))ce++;if(res[ce]==='\r')ce++;if(res[ce]==='\n')ce++}
+    while(cs>0&&/[ \t]/.test(res[cs-1]))cs--;
+    res=res.slice(0,cs)+res.slice(ce);
+  });
+  if(document.getElementById('optInvisible').checked)res=res.replace(/[\uFEFF\u200B-\u200D\u2060]/g,'');
+  if(document.getElementById('optTrailing').checked)res=res.replace(/[ \t]+$/gm,'');
+  if(document.getElementById('optEmptyLines').checked)res=res.replace(/\n{3,}/g,'\n\n');
+  processedCode=res;
+  const st=document.getElementById('buildStatus');
+  try{
+    new Function(processedCode);
+    st.innerHTML=`<span class="ok">✅ Синтаксис верный! Удалено дублей: ${ranges.length}. Размер: ${(new Blob([processedCode]).size/1024).toFixed(1)} КБ.</span>`;
+  }catch(err){
+    st.innerHTML=`<span class="err">⚠️ Ошибка синтаксиса: ${esc(err.message)}</span>`;
+  }
+  document.getElementById('btnDownload').disabled=false;
+};
+
+document.getElementById('btnDownload').onclick=()=>{
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([processedCode],{type:'application/javascript;charset=utf-8'}));
+  a.download=originalFileName.replace(/\.js$/i,'')+'_clean.js';
+  a.click();
+};
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+</script>
+</body>
+</html>
+
