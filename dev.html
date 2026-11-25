@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>S-T-I-K-S // DEV v2.3 (Ядро zopa.js)</title>
+  <title>S-T-I-K-S // DEV v3.0 (zopa.js + stiks_content.js)</title>
   <style>
     * { box-sizing: border-box; }
     body { background: #0b0d0c; color: #c8d6cc; font-family: 'Courier New', monospace; margin: 0; padding: 10px; }
-    .wrapper { max-width: 520px; margin: 0 auto; background: #131715; border: 1px solid #38bdf8; padding: 12px; }
-    h1 { font-size: 15px; text-align: center; color: #7dd3fc; margin: 0 0 8px 0; border-bottom: 1px solid #38bdf8; padding-bottom: 6px; }
+    .wrapper { max-width: 520px; margin: 0 auto; background: #131715; border: 1px solid #6e2626; padding: 12px; border-radius: 6px; }
+    h1 { font-size: 15px; text-align: center; color: #d68a8a; margin: 0 0 6px 0; border-bottom: 1px solid #6e2626; padding-bottom: 6px; }
     .btn { background: #1e2622; color: #c8d6cc; border: 1px solid #6e2626; padding: 7px 8px; font-family: inherit; font-size: 11px; cursor: pointer; flex: 1; text-align: center; border-radius: 4px; }
     .btn:active { background: #3b1515; }
     .btn:disabled { opacity: 0.45; cursor: not-allowed; }
@@ -18,37 +18,54 @@
     #game-viewport { min-height: 290px; background: #0e1210; border: 1px solid #6e2626; padding: 10px; border-radius: 4px; }
     .log-box { margin-top: 10px; background: #070908; border: 1px solid #3d1c1c; padding: 8px; font-size: 11px; max-height: 125px; overflow-y: auto; color: #b5a3a3; line-height: 1.35; }
     .top-controls { display: flex; gap: 5px; margin-bottom: 8px; flex-wrap: wrap; }
-    .patch-badge { font-size: 10px; color: #7dd3fc; text-align: right; margin-bottom: 6px; }
+    .patch-badge { font-size: 10px; color: #98d4ae; text-align: right; margin-bottom: 6px; }
     input, select { background: #080a09; color: #e6f2ea; border: 1px solid #4a1c1c; border-radius: 4px; padding: 5px; font-family: inherit; font-size: 11px; }
   </style>
 </head>
 <body>
   <div class="wrapper">
-    <h1>S-T-I-K-S // DEV v2.3 (ЯДРО ZOPA.JS)</h1>
-    <div id="patch-status" class="patch-badge">Ядро: zopa.js v2.3</div>
+    <h1>S-T-I-K-S // УЛЕЙ (DEV v3.0)</h1>
+    <div id="patch-status" class="patch-badge">Загрузка модулей...</div>
     <div class="top-controls">
-      <button id="btn-voice-toggle" class="btn" onclick="STIKS.toggleVoice()">🔊 Озвучка: ВКЛ</button>
-      <button class="btn" style="border-color:#38bdf8;color:#7dd3fc;font-weight:bold;" onclick="STIKS.cloneFromProd()">📥 Из проды</button>
-      <button class="btn btn-primary" onclick="STIKS.exportSave()">💾 Сейв</button>
-      <button class="btn" onclick="document.getElementById('load-heroes-input').click()">📂 Загрузить</button>
-      <input type="file" id="load-heroes-input" accept=".json,.txt,application/json" style="display:none;" onchange="STIKS.importSave(this)">
+      <button id="btn-voice-toggle" type="button" class="btn" onclick="STIKS.toggleVoice()">🔊 Голос: ВКЛ</button>
+      <button id="btn-export-save" type="button" class="btn btn-primary" onclick="STIKS.exportSave()">💾 Сейв</button>
+      <button type="button" class="btn" onclick="document.getElementById('inp-import-save').click()">📂 Загрузить</button>
+      <input type="file" id="inp-import-save" accept=".json,.txt,application/json" style="display:none;" onchange="STIKS.importSave(this.files && this.files[0])">
     </div>
     <div id="game-viewport"></div>
-    <div id="sys-log" class="log-box">&gt; Чистое ядро zopa.js v2.3 готово.</div>
+    <div id="sys-log" class="log-box">&gt; Инициализация чистого ядра...</div>
   </div>
 
-  <script src="zopa.js?v=2.3.0"></script>
-  <script src="stiks_content.js?v=2.3.0"></script>
+  <script src="zopa.js?v=3.0.1"></script>
+  <script src="stiks_content.js?v=3.0.1"></script>
   <script>
     window.addEventListener('load', function() {
-      if (!window.STIKS) return;
-      window.STIKS.loadDB();
-      if (window.STIKS_CONTENT) window.STIKS_CONTENT.bindHooks();
       const badge = document.getElementById('patch-status');
-      if (badge) badge.innerText = 'Ядро: zopa.js v2.3 • Content v' + (window.STIKS_CONTENT ? window.STIKS_CONTENT.version : '?');
-      if (window.STIKS.db && window.STIKS.db.session && !window.STIKS.db.session.combat) window.STIKS.renderGame();
-      else if (window.STIKS.db && window.STIKS.db.session && window.STIKS.db.session.combat) window.STIKS.renderCombat();
-      else window.STIKS.renderLobby();
+      if (!window.STIKS) {
+        if (badge) badge.innerText = '❌ Ошибка: zopa.js не загружен';
+        return;
+      }
+
+      if (typeof window.STIKS.toggleVoice !== 'function') {
+        window.STIKS.toggleVoice = function() {
+          this.voiceOn = !this.voiceOn;
+          const btn = document.getElementById('btn-voice-toggle');
+          if (btn) btn.textContent = this.voiceOn ? '🔊 Голос: ВКЛ' : '🔇 Голос: ВЫКЛ';
+          if (!this.voiceOn && 'speechSynthesis' in window) {
+            try { window.speechSynthesis.cancel(); } catch (e) {}
+          }
+        };
+      }
+
+      if (window.STIKS_CONTENT && typeof window.STIKS_CONTENT.applyToEngines === 'function') {
+        window.STIKS_CONTENT.applyToEngines();
+      }
+
+      window.STIKS.init();
+
+      const cVer = window.STIKS_CONTENT ? window.STIKS_CONTENT.version : 'НЕТ';
+      if (badge) badge.innerText = 'Ядро: ' + window.STIKS.version + ' | Контент: ' + cVer;
+      window.STIKS.log('Модули подключены: zopa.js (' + window.STIKS.version + ') + stiks_content.js (' + cVer + ').');
     });
   </script>
 </body>
