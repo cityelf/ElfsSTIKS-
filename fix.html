@@ -3,20 +3,20 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>STIKS Auto-Patcher v2</title>
+<title>STIKS Auto-Patcher v3</title>
 <style>
   body{margin:0;padding:12px;background:#0d1117;color:#e6edf3;font-family:sans-serif;font-size:14px}
   .card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px;margin-bottom:10px}
-  textarea{width:100%;height:130px;background:#0d1117;color:#7ee787;border:1px solid #30363d;border-radius:6px;padding:8px;box-sizing:border-box;font-family:monospace;font-size:12px}
+  textarea{width:100%;height:130px;background:#0d1117;color:#7ee787;border:1px solid #30363d;border-radius:6px;padding:8px;box-sizing:border-box;font-family:monospace;font-size:12px;margin-top:6px}
   .btn{width:100%;padding:12px;border:none;border-radius:6px;font-weight:bold;font-size:14px;cursor:pointer;margin-top:8px}
-  .green{background:#3fb950;color:#000}.gray{background:#30363d;color:#fff}
+  .blue{background:#2f81f7;color:#fff}.green{background:#3fb950;color:#000}.gray{background:#30363d;color:#fff}
   .btn:disabled{opacity:.4}
   .ok{color:#3fb950}.err{color:#f85149}
   pre{background:#090c10;border:1px solid #f85149;padding:8px;border-radius:6px;overflow-x:auto;font-size:11px;color:#ffa198;white-space:pre-wrap}
 </style>
 </head>
 <body>
-  <h3 style="margin:0 0 10px">🔧 Авто-патчер v2 (с поиском строки ошибки)</h3>
+  <h3 style="margin:0 0 10px">🔧 Авто-патчер v3</h3>
   
   <div class="card">
     <div><b>Шаг 1:</b> Выберите ваш .js файл</div>
@@ -25,15 +25,28 @@
   </div>
 
   <div class="card">
-    <div><b>Шаг 2:</b> Вставьте патч-команду от ИИ</div>
-    <textarea id="patchIn" placeholder="Вставьте JSON-патч..."></textarea>
-    <button class="btn green" id="btnApply" disabled>⚡ Применить и проверить</button>
-    <button class="btn gray" id="btnForceSave" style="display:none">💾 Скачать файл как есть</button>
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <b>Шаг 2: Патч-команда от ИИ</b>
+      <button class="btn blue" id="btnPaste" style="width:auto;padding:6px 12px;margin:0;font-size:12px">📋 Вставить</button>
+    </div>
+    <textarea id="patchIn" placeholder="Нажмите «📋 Вставить»..."></textarea>
+    <button class="btn green" id="btnApply" disabled>⚡ Применить и скачать</button>
+    <button class="btn gray" id="btnForceSave" style="display:none">💾 Скачать как есть</button>
     <div id="log" style="margin-top:10px;font-size:13px;line-height:1.4"></div>
   </div>
 
 <script>
 let fileText = '', fileName = 'ZOPA.JS', lastRes = '';
+
+document.getElementById('btnPaste').onclick = async () => {
+  try {
+    const txt = await navigator.clipboard.readText();
+    document.getElementById('patchIn').value = txt;
+  } catch (e) {
+    document.getElementById('patchIn').focus();
+    document.execCommand('paste');
+  }
+};
 
 document.getElementById('fileIn').onchange = e => {
   const f = e.target.files.item(0);
@@ -42,39 +55,40 @@ document.getElementById('fileIn').onchange = e => {
   const r = new FileReader();
   r.onload = ev => {
     fileText = ev.target.result;
-    document.getElementById('fileInfo').innerHTML = `<span class="ok">✅ Загружен: ${fileName} (${fileText.split('\n').length} строк)</span>`;
+    document.getElementById('fileInfo').innerHTML = `<span class="ok">✅ ${fileName} (${fileText.split('\n').length} строк)</span>`;
     document.getElementById('btnApply').disabled = false;
   };
   r.readAsText(f, 'UTF-8');
 };
+
+function parseOps(raw) {
+  if (raw.includes('===FIND===')) {
+    return raw.split('===BLOCK===').map(b => b.trim()).filter(Boolean).map((b, i) => {
+      const p1 = b.split('===FIND===').at(1) || '';
+      const parts = p1.split('===TO===');
+      return { desc: 'Блок ' + (i + 1), act: 'replace', find: parts.at(0).replace(/^\n|\n$/g, ''), to: (parts.at(1) || '').replace(/^\n|\n$/g, '') };
+    });
+  }
+  const fixed = raw.replace(/"((?:[^"\\]|\\.)*)"/gs, m => m.replace(/\r?\n/g, '\\n'));
+  const parsed = JSON.parse(fixed);
+  return Array.isArray(parsed) ? parsed : [parsed];
+}
 
 function findErrorLine(code) {
   const lines = code.split('\n');
   let lo = 1, hi = lines.length, bad = hi;
   while (lo <= hi) {
     const mid = (lo + hi) >> 1;
-    const chunk = lines.slice(0, mid).join('\n');
-    try {
-      new Function(chunk);
-      lo = mid + 1;
-    } catch (e) {
-      if (/Unexpected end of input|unterminated/i.test(e.message)) {
-        lo = mid + 1;
-      } else {
-        bad = mid;
-        hi = mid - 1;
-      }
-    }
+    try { new Function(lines.slice(0, mid).join('\n')); lo = mid + 1; }
+    catch (e) { if (/Unexpected end of input|unterminated/i.test(e.message)) lo = mid + 1; else { bad = mid; hi = mid - 1; } }
   }
-  const from = Math.max(0, bad - 4);
-  const to = Math.min(lines.length, bad + 3);
+  const from = Math.max(0, bad - 4), to = Math.min(lines.length, bad + 3);
   return lines.slice(from, to).map((l, idx) => `${from + idx + 1 === bad ? '>>> ' : '    '}${from + idx + 1}: ${l}`).join('\n');
 }
 
 function downloadJS(txt) {
-  const blob = new Blob([txt], { type: 'application/javascript;charset=utf-8' });
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
+  a.href = URL.createObjectURL(new Blob([txt], { type: 'application/javascript;charset=utf-8' }));
   a.download = fileName.replace(/\.js$/i, '') + '_fixed.js';
   a.click();
 }
@@ -85,44 +99,22 @@ document.getElementById('btnApply').onclick = () => {
   const log = document.getElementById('log');
   document.getElementById('btnForceSave').style.display = 'none';
   let ops;
-  try {
-    ops = JSON.parse(document.getElementById('patchIn').value.trim());
-    if (!Array.isArray(ops)) ops = [ops];
-  } catch (e) {
-    log.innerHTML = `<span class="err">❌ Ошибка в формате JSON: ${e.message}</span>`;
-    return;
-  }
+  try { ops = parseOps(document.getElementById('patchIn').value.trim()); }
+  catch (e) { log.innerHTML = `<span class="err">❌ Ошибка патча: ${e.message}</span>`; return; }
 
-  let res = fileText;
-  let report = [];
-
+  let res = fileText, report = [];
   for (let i = 0; i < ops.length; i++) {
     const op = ops.at(i);
-    if (op.act === 'replace') {
-      if (!res.includes(op.find)) {
-        log.innerHTML = `<span class="err">❌ Шаг ${i+1}: не найден фрагмент. Патч остановлен.</span>`;
-        return;
-      }
-      res = res.replace(op.find, op.to);
-      report.push(`✔ ${op.desc || 'Шаг ' + (i+1)}`);
-    } else if (op.act === 'cut_from') {
-      const idx = res.indexOf(op.marker);
-      if (idx === -1) {
-        log.innerHTML = `<span class="err">❌ Шаг ${i+1}: не найдена метка.</span>`;
-        return;
-      }
-      res = res.slice(0, idx);
-      report.push(`✔ ${op.desc || 'Шаг ' + (i+1)}`);
-    }
+    if (!res.includes(op.find)) { log.innerHTML = `<span class="err">❌ Не найден фрагмент (${op.desc || i+1})</span>`; return; }
+    res = res.replace(op.find, op.to);
+    report.push(`✔ ${op.desc || 'Шаг ' + (i+1)}`);
   }
 
   lastRes = res;
-  try {
-    new Function(res);
-  } catch (err) {
-    const snippet = findErrorLine(res);
+  try { new Function(res); }
+  catch (err) {
     document.getElementById('btnForceSave').style.display = 'block';
-    log.innerHTML = report.join('<br>') + `<br><span class="err">⚠️ Ошибка: ${err.message}</span><pre>${snippet.replace(/</g,'&lt;')}</pre>`;
+    log.innerHTML = report.join('<br>') + `<br><span class="err">⚠️ Ошибка JS: ${err.message}</span><pre>${findErrorLine(res).replace(/</g,'&lt;')}</pre>`;
     return;
   }
 
