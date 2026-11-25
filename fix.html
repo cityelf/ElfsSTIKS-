@@ -3,36 +3,37 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>STIKS Auto-Patcher</title>
+<title>STIKS Auto-Patcher v2</title>
 <style>
-  body{margin:0;padding:14px;background:#0d1117;color:#e6edf3;font-family:sans-serif;font-size:14px}
-  .card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px;margin-bottom:12px}
-  textarea{width:100%;height:140px;background:#0d1117;color:#7ee787;border:1px solid #30363d;border-radius:6px;padding:8px;box-sizing:border-box;font-family:monospace;font-size:12px}
+  body{margin:0;padding:12px;background:#0d1117;color:#e6edf3;font-family:sans-serif;font-size:14px}
+  .card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px;margin-bottom:10px}
+  textarea{width:100%;height:130px;background:#0d1117;color:#7ee787;border:1px solid #30363d;border-radius:6px;padding:8px;box-sizing:border-box;font-family:monospace;font-size:12px}
   .btn{width:100%;padding:12px;border:none;border-radius:6px;font-weight:bold;font-size:14px;cursor:pointer;margin-top:8px}
-  .blue{background:#2f81f7;color:#fff}
-  .green{background:#3fb950;color:#000}
+  .green{background:#3fb950;color:#000}.gray{background:#30363d;color:#fff}
   .btn:disabled{opacity:.4}
   .ok{color:#3fb950}.err{color:#f85149}
+  pre{background:#090c10;border:1px solid #f85149;padding:8px;border-radius:6px;overflow-x:auto;font-size:11px;color:#ffa198;white-space:pre-wrap}
 </style>
 </head>
 <body>
-  <h3 style="margin:0 0 10px">🔧 Авто-патчер для ZOPA.JS</h3>
+  <h3 style="margin:0 0 10px">🔧 Авто-патчер v2 (с поиском строки ошибки)</h3>
   
   <div class="card">
-    <div><b>Шаг 1:</b> Выберите ваш большой файл (.js)</div>
+    <div><b>Шаг 1:</b> Выберите ваш .js файл</div>
     <input type="file" id="fileIn" accept=".js,.txt" style="margin-top:8px;width:100%">
     <div id="fileInfo" style="margin-top:6px;font-size:12px;color:#8b949e">Файл не загружен</div>
   </div>
 
   <div class="card">
     <div><b>Шаг 2:</b> Вставьте патч-команду от ИИ</div>
-    <textarea id="patchIn" placeholder="Вставьте сюда JSON-патч..."></textarea>
-    <button class="btn green" id="btnApply" disabled>⚡ Применить патч и скачать файл</button>
+    <textarea id="patchIn" placeholder="Вставьте JSON-патч..."></textarea>
+    <button class="btn green" id="btnApply" disabled>⚡ Применить и проверить</button>
+    <button class="btn gray" id="btnForceSave" style="display:none">💾 Скачать файл как есть</button>
     <div id="log" style="margin-top:10px;font-size:13px;line-height:1.4"></div>
   </div>
 
 <script>
-let fileText = '', fileName = 'ZOPA.JS';
+let fileText = '', fileName = 'ZOPA.JS', lastRes = '';
 
 document.getElementById('fileIn').onchange = e => {
   const f = e.target.files.item(0);
@@ -47,14 +48,48 @@ document.getElementById('fileIn').onchange = e => {
   r.readAsText(f, 'UTF-8');
 };
 
+function findErrorLine(code) {
+  const lines = code.split('\n');
+  let lo = 1, hi = lines.length, bad = hi;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    const chunk = lines.slice(0, mid).join('\n');
+    try {
+      new Function(chunk);
+      lo = mid + 1;
+    } catch (e) {
+      if (/Unexpected end of input|unterminated/i.test(e.message)) {
+        lo = mid + 1;
+      } else {
+        bad = mid;
+        hi = mid - 1;
+      }
+    }
+  }
+  const from = Math.max(0, bad - 4);
+  const to = Math.min(lines.length, bad + 3);
+  return lines.slice(from, to).map((l, idx) => `${from + idx + 1 === bad ? '>>> ' : '    '}${from + idx + 1}: ${l}`).join('\n');
+}
+
+function downloadJS(txt) {
+  const blob = new Blob([txt], { type: 'application/javascript;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = fileName.replace(/\.js$/i, '') + '_fixed.js';
+  a.click();
+}
+
+document.getElementById('btnForceSave').onclick = () => { if (lastRes) downloadJS(lastRes); };
+
 document.getElementById('btnApply').onclick = () => {
   const log = document.getElementById('log');
+  document.getElementById('btnForceSave').style.display = 'none';
   let ops;
   try {
     ops = JSON.parse(document.getElementById('patchIn').value.trim());
     if (!Array.isArray(ops)) ops = [ops];
   } catch (e) {
-    log.innerHTML = `<span class="err">❌ Ошибка в формате патча: ${e.message}</span>`;
+    log.innerHTML = `<span class="err">❌ Ошибка в формате JSON: ${e.message}</span>`;
     return;
   }
 
@@ -65,47 +100,34 @@ document.getElementById('btnApply').onclick = () => {
     const op = ops.at(i);
     if (op.act === 'replace') {
       if (!res.includes(op.find)) {
-        log.innerHTML = `<span class="err">❌ Шаг ${i+1}: не найден фрагмент для замены. Патч остановлен.</span>`;
+        log.innerHTML = `<span class="err">❌ Шаг ${i+1}: не найден фрагмент. Патч остановлен.</span>`;
         return;
       }
       res = res.replace(op.find, op.to);
-      report.push(`✔ Заменен блок (${op.desc || i+1})`);
-    } 
-    else if (op.act === 'cut_from') {
+      report.push(`✔ ${op.desc || 'Шаг ' + (i+1)}`);
+    } else if (op.act === 'cut_from') {
       const idx = res.indexOf(op.marker);
       if (idx === -1) {
-        log.innerHTML = `<span class="err">❌ Шаг ${i+1}: не найдена метка обрезки.</span>`;
+        log.innerHTML = `<span class="err">❌ Шаг ${i+1}: не найдена метка.</span>`;
         return;
       }
       res = res.slice(0, idx);
-      report.push(`✔ Обрезан мусорный хвост (${op.desc || i+1})`);
-    }
-    else if (op.act === 'cut_between') {
-      const s = res.indexOf(op.start);
-      const e = res.indexOf(op.end, s);
-      if (s === -1 || e === -1) {
-        log.innerHTML = `<span class="err">❌ Шаг ${i+1}: не найдены границы вырезки.</span>`;
-        return;
-      }
-      res = res.slice(0, s) + (op.insert || '') + res.slice(e);
-      report.push(`✔ Вырезан битый кусок (${op.desc || i+1})`);
+      report.push(`✔ ${op.desc || 'Шаг ' + (i+1)}`);
     }
   }
 
+  lastRes = res;
   try {
     new Function(res);
   } catch (err) {
-    log.innerHTML = report.join('<br>') + `<br><span class="err">⚠️ После патча в файле осталась ошибка JS: ${err.message}</span>`;
+    const snippet = findErrorLine(res);
+    document.getElementById('btnForceSave').style.display = 'block';
+    log.innerHTML = report.join('<br>') + `<br><span class="err">⚠️ Ошибка: ${err.message}</span><pre>${snippet.replace(/</g,'&lt;')}</pre>`;
     return;
   }
 
-  const blob = new Blob([res], { type: 'application/javascript;charset=utf-8' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = fileName.replace(/\.js$/i, '') + '_fixed.js';
-  a.click();
-
-  log.innerHTML = report.join('<br>') + `<br><span class="ok">🎉 ГОТОВО! Синтаксис проверен, файл скачан!</span>`;
+  downloadJS(res);
+  log.innerHTML = report.join('<br>') + `<br><span class="ok">🎉 ГОТОВО! Синтаксис чистый, файл скачан!</span>`;
 };
 </script>
 </body>
