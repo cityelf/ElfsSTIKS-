@@ -73,22 +73,47 @@
           window.STIKS_CONTENT.applyToEngines();
         }
 
-        const origRender = window.STIKS.renderGame.bind(window.STIKS);
-        window.STIKS.renderGame = function() {
-          origRender();
+        window.STIKS.stepPlayer = function(dx, dy) {
           const s = this.db && this.db.session;
-          const vp = document.getElementById('game-viewport');
-          if (!s || !vp || s.combat) return;
+          if (!s || !Array.isArray(s.players) || !s.players.length) return;
           if (s.combat && (!window.STIKS_COMBAT_CORE || !window.STIKS_COMBAT_CORE.state)) s.combat = null;
-          if (s.humanEncounter && !s.humanEncounter.zId) s.humanEncounter = null;
-          const p = s.players[Number(s.activeIdx) || 0];
-          if (p && (typeof p.stepsLeft !== 'number' || isNaN(p.stepsLeft) || (Number(s.turn) === 1 && !p.movedThisTurn && p.stepsLeft <= 0))) {
+          if (s.combat || s.humanEncounter) return;
+          const idx = Math.max(0, Math.min(s.players.length - 1, Number(s.activeIdx) || 0));
+          const p = s.players[idx];
+          if (!p) return;
+          if (typeof p.stepsLeft !== 'number' || isNaN(p.stepsLeft) || (Number(s.turn) === 1 && !p.movedThisTurn && p.stepsLeft <= 0)) {
             p.stepsLeft = p.maxAp || 6;
           }
-          vp.querySelectorAll('button[onclick*="stepPlayer"]').forEach(function(btn) {
-            const m = (btn.getAttribute('onclick') || '').match(/stepPlayer\((-?\d+),\s*(-?\d+)\)/);
-            if (m) btn.onclick = function() { window.STIKS.stepPlayer(Number(m[1]), Number(m[2])); };
-          });
+          const cost = this.getStepCost(p.moveMode || 'careful');
+          if (p.stepsLeft < cost) {
+            this.log('❌ Нужно ' + cost + ' ОХ, осталось ' + p.stepsLeft + '.');
+            return;
+          }
+          const nx = (Number(p.x) || 0) + Number(dx);
+          const ny = (Number(p.y) || 0) + Number(dy);
+          if (nx < 0 || nx > 59 || ny < 0 || ny > 59) {
+            this.log('🚪 Вы подошли к выходу (обработка края карты).');
+            return;
+          }
+          const cell = s.grid && s.grid[ny] && s.grid[ny][nx];
+          if (!cell || cell.blocked) {
+            this.log('⛰️ Путь заблокирован.');
+            return;
+          }
+          p.x = nx;
+          p.y = ny;
+          p.stepsLeft -= cost;
+          p.movedThisTurn = true;
+          this.log('🚶 Шаг [' + (p.x + 1) + ':' + (p.y + 1) + '] (-' + cost + ' ОХ, ост. ' + p.stepsLeft + ').');
+          if (typeof this.playStepSound === 'function') this.playStepSound(p.moveMode || 'careful');
+          const zHit = Array.isArray(s.zombies) && s.zombies.find(function(z) { return z && Number(z.x) === nx && Number(z.y) === ny; });
+          if (zHit && !p.mapStealthOn && typeof this.triggerEncounter === 'function') {
+            zHit.hidden = false;
+            this.triggerEncounter(p, zHit);
+            return;
+          }
+          this.saveDB();
+          this.renderGame();
         };
 
         window.STIKS.init();
