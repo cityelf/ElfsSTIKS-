@@ -2,127 +2,180 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>S-T-I-K-S // DEV (AUTO-NOCACHE)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>S-T-I-K-S // DEV</title>
   <style>
-    * { box-sizing: border-box; }
+    * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
     body { background: #0b0d0c; color: #c8d6cc; font-family: 'Courier New', monospace; margin: 0; padding: 10px; }
     .wrapper { max-width: 520px; margin: 0 auto; background: #131715; border: 1px solid #6e2626; padding: 12px; border-radius: 6px; }
-    h1 { font-size: 15px; text-align: center; color: #d68a8a; margin: 0 0 6px 0; border-bottom: 1px solid #6e2626; padding-bottom: 6px; }
-    .btn { background: #1e2622; color: #c8d6cc; border: 1px solid #6e2626; padding: 7px 8px; font-family: inherit; font-size: 11px; cursor: pointer; flex: 1; text-align: center; border-radius: 4px; }
-    .btn:active { background: #3b1515; }
-    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    h1 { font-size: 15px; text-align: center; color: #d68a8a; margin: 0 0 8px 0; border-bottom: 1px solid #6e2626; padding-bottom: 6px; }
+    .btn { background: #1e2622; color: #c8d6cc; border: 1px solid #6e2626; padding: 9px 8px; font-family: inherit; font-size: 12px; cursor: pointer; flex: 1; text-align: center; border-radius: 4px; touch-action: manipulation; }
+    .btn:active { background: #3b1515; transform: scale(0.97); }
     .btn-primary { background: #3b1515; border-color: #8f2d2d; color: #f5d6d6; font-weight: bold; }
-    .btn-ok { background: #153322; border-color: #2e7d4f; color: #b6f5cf; font-weight: bold; }
-    .btn-danger { background: #2b1414; border-color: #5c2828; color: #d68585; }
-    #game-viewport { min-height: 290px; background: #0e1210; border: 1px solid #6e2626; padding: 10px; border-radius: 4px; }
-    .log-box { margin-top: 10px; background: #070908; border: 1px solid #3d1c1c; padding: 8px; font-size: 11px; max-height: 125px; overflow-y: auto; color: #b5a3a3; line-height: 1.35; }
-    .top-controls { display: flex; gap: 5px; margin-bottom: 8px; flex-wrap: wrap; }
-    .patch-badge { font-size: 10px; color: #98d4ae; text-align: right; margin-bottom: 6px; }
-    input, select { background: #080a09; color: #e6f2ea; border: 1px solid #4a1c1c; border-radius: 4px; padding: 5px; font-family: inherit; font-size: 11px; }
+    .hud { display: flex; justify-content: space-between; align-items: center; background: #140e0e; border: 1px solid #6e2626; padding: 6px 8px; border-radius: 4px; margin-bottom: 8px; font-size: 11px; }
+    .grid11 { display: grid; grid-template-columns: repeat(11, 1fr); gap: 2px; background: #080a09; padding: 4px; border: 1px solid #6e2626; margin-bottom: 8px; }
+    .cell { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; background: #131815; color: #687a6e; font-size: 12px; border-radius: 2px; }
+    .cell.me { background: #2d4a38; color: #fff; font-weight: bold; }
+    .cell.wall { background: #1f2421; }
+    .cell.loot { background: #18242b; color: #7ab8e6; }
+    .cell.exit { background: #132419; border: 1px dashed #3d8b57; color: #6ee794; }
+    .modes { display: flex; gap: 4px; margin-bottom: 8px; }
+    .pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-bottom: 8px; }
+    .log-box { background: #070908; border: 1px solid #3d1c1c; padding: 8px; font-size: 11px; height: 110px; overflow-y: auto; color: #b5a3a3; line-height: 1.35; }
   </style>
 </head>
 <body>
   <div class="wrapper">
-    <h1>S-T-I-K-S // УЛЕЙ (DEV)</h1>
-    <div id="patch-status" class="patch-badge">Загрузка модулей...</div>
-    <div class="top-controls">
-      <button id="btn-voice-toggle" type="button" class="btn" onclick="STIKS.toggleVoice()">🔊 Голос: ВКЛ</button>
-      <button id="btn-export-save" type="button" class="btn btn-primary" onclick="STIKS.exportSave()">💾 Сейв</button>
-      <button type="button" class="btn" onclick="document.getElementById('inp-import-save').click()">📂 Загрузить</button>
-      <input type="file" id="inp-import-save" accept=".json,.txt,application/json" style="display:none;" onchange="STIKS.importSave(this.files && this.files.at(0))">
+    <h1>S-T-I-K-S // DEV 60×60</h1>
+    <div class="hud">
+      <div id="hud-hero">Боец: <b>Выживший</b></div>
+      <div>Ход: <b id="hud-turn">1</b> | ОХ: <b id="hud-ap">6/6</b></div>
+      <div>[<span id="hud-xy">30:30</span>]</div>
     </div>
-    <div id="game-viewport"></div>
-    <div id="sys-log" class="log-box">&gt; Инициализация чистого ядра...</div>
+    <div id="map-grid" class="grid11"></div>
+    <div class="modes">
+      <button type="button" id="m-careful" class="btn btn-primary" onclick="DEV_GAME.setMode('careful')">Внимат. (3)</button>
+      <button type="button" id="m-fast" class="btn" onclick="DEV_GAME.setMode('fast')">Быстро (2)</button>
+      <button type="button" id="m-run" class="btn" onclick="DEV_GAME.setMode('run')">Бегом (1)</button>
+    </div>
+    <div class="pad">
+      <div></div>
+      <button type="button" class="btn" onclick="DEV_GAME.move(0, -1)">⬆</button>
+      <div></div>
+      <button type="button" class="btn" onclick="DEV_GAME.move(-1, 0)">⬅</button>
+      <button type="button" class="btn btn-primary" onclick="DEV_GAME.search()">🔍 Поиск (3)</button>
+      <button type="button" class="btn" onclick="DEV_GAME.move(1, 0)">➡</button>
+      <div></div>
+      <button type="button" class="btn" onclick="DEV_GAME.move(0, 1)">⬇</button>
+      <div></div>
+    </div>
+    <button type="button" class="btn btn-primary" style="width:100%;margin-bottom:8px;" onclick="DEV_GAME.endTurn()">⏭ Конец хода</button>
+    <div id="sys-log" class="log-box">&gt; Готово. Жмите стрелки!</div>
   </div>
 
   <script>
-    (function() {
-      const ts = Date.now();
-      function loadScript(src) {
-        return new Promise(function(resolve) {
-          const s = document.createElement('script');
-          s.src = src + '?v=' + ts;
-          s.onload = resolve;
-          s.onerror = resolve;
-          document.body.appendChild(s);
-        });
-      }
+    const DEV_GAME = {
+      x: 29, y: 29, turn: 1, maxAp: 6, ap: 6, mode: 'careful', moved: false,
+      heroName: 'Выживший', heroIcon: '🧍',
+      map: [],
 
-      loadScript('stiks_content.js').then(function() {
-        return loadScript('zopa.js');
-      }).then(function() {
-        const badge = document.getElementById('patch-status');
-        if (!window.STIKS) {
-          if (badge) badge.innerText = '❌ Ошибка: zopa.js не загружен';
-          return;
-        }
+      log(msg) {
+        const b = document.getElementById('sys-log');
+        if (b) b.innerHTML = '&gt; ' + msg + '<br>' + b.innerHTML;
+      },
 
-        if (typeof window.STIKS.toggleVoice !== 'function') {
-          window.STIKS.toggleVoice = function() {
-            this.voiceOn = !this.voiceOn;
-            const btn = document.getElementById('btn-voice-toggle');
-            if (btn) btn.textContent = this.voiceOn ? '🔊 Голос: ВКЛ' : '🔇 Голос: ВЫКЛ';
-            if (!this.voiceOn && 'speechSynthesis' in window) {
-              try { window.speechSynthesis.cancel(); } catch (e) {}
+      init() {
+        // Подхватываем имя и ОХ из STIKS, если есть сохранение
+        try {
+          const raw = JSON.parse(localStorage.getItem('stiks_dev_v2_db') || 'null');
+          if (raw && raw.families) {
+            const fams = Object.keys(raw.families);
+            for (let i = 0; i < fams.length; i++) {
+              const h = (raw.families[fams[i]] || [])[0];
+              if (h) {
+                this.heroName = (h.family ? h.family + ' ' : '') + (h.name || 'Выживший');
+                const spd = Number((h.stats && h.stats.spd) || h.spd || 10);
+                this.maxAp = 6 + Math.floor(spd / 50);
+                this.ap = this.maxAp;
+                this.heroIcon = (h.isInfected || h.asInfected) ? '☣️' : '🧍';
+                break;
+              }
             }
-          };
+          }
+        } catch (e) {}
+
+        // Генерация поля 60x60
+        this.map = [];
+        for (let y = 0; y < 60; y++) {
+          const row = [];
+          for (let x = 0; x < 60; x++) {
+            const nearCenter = Math.abs(x - 29) <= 1 && Math.abs(y - 29) <= 1;
+            const r = Math.random();
+            row.push({
+              wall: !nearCenter && r < 0.08,
+              loot: !nearCenter && r >= 0.08 && r < 0.14
+            });
+          }
+          this.map.push(row);
         }
+        this.render();
+      },
 
-        if (window.STIKS_CONTENT && typeof window.STIKS_CONTENT.applyToEngines === 'function') {
-          window.STIKS_CONTENT.applyToEngines();
+      cost() {
+        return this.mode === 'careful' ? 3 : (this.mode === 'fast' ? 2 : 1);
+      },
+
+      setMode(m) {
+        if (this.moved) { this.log('❌ Нельзя менять скорость после шага в этом ходу.'); return; }
+        this.mode = m;
+        this.render();
+      },
+
+      move(dx, dy) {
+        const c = this.cost();
+        if (this.ap < c) { this.log('❌ Мало ОХ (нужно ' + c + ', есть ' + this.ap + '). Жмите «Конец хода».'); return; }
+        const nx = this.x + dx, ny = this.y + dy;
+        if (nx < 0 || nx > 59 || ny < 0 || ny > 59) { this.log('🚪 Край карты 60×60!'); return; }
+        if (this.map[ny][nx].wall) { this.log('⛰️ Там преграда.'); return; }
+        this.x = nx; this.y = ny;
+        this.ap -= c; this.moved = true;
+        this.log('🚶 Шаг [' + (this.x + 1) + ':' + (this.y + 1) + '] (-' + c + ' ОХ).');
+        this.render();
+      },
+
+      search() {
+        if (this.ap < 3) { this.log('❌ Для обыска нужно 3 ОХ.'); return; }
+        this.ap -= 3; this.moved = true;
+        const cell = this.map[this.y][this.x];
+        if (cell.loot) {
+          cell.loot = false;
+          this.log('🎁 Обыск: найден тайник с припасами!');
+        } else {
+          this.log('🔍 Обыск [' + (this.x + 1) + ':' + (this.y + 1) + ']: пусто.');
         }
+        this.render();
+      },
 
-        window.STIKS.stepPlayer = function(dx, dy) {
-          const s = this.db && this.db.session;
-          if (!s || !Array.isArray(s.players) || !s.players.length) return;
-          if (s.combat && (!window.STIKS_COMBAT_CORE || !window.STIKS_COMBAT_CORE.state)) s.combat = null;
-          if (s.combat || s.humanEncounter) return;
-          const idx = Math.max(0, Math.min(s.players.length - 1, Number(s.activeIdx) || 0));
-          const p = s.players[idx];
-          if (!p) return;
-          if (typeof p.stepsLeft !== 'number' || isNaN(p.stepsLeft) || (Number(s.turn) === 1 && !p.movedThisTurn && p.stepsLeft <= 0)) {
-            p.stepsLeft = p.maxAp || 6;
-          }
-          const cost = this.getStepCost(p.moveMode || 'careful');
-          if (p.stepsLeft < cost) {
-            this.log('❌ Нужно ' + cost + ' ОХ, осталось ' + p.stepsLeft + '.');
-            return;
-          }
-          const nx = (Number(p.x) || 0) + Number(dx);
-          const ny = (Number(p.y) || 0) + Number(dy);
-          if (nx < 0 || nx > 59 || ny < 0 || ny > 59) {
-            this.log('🚪 Вы подошли к выходу (обработка края карты).');
-            return;
-          }
-          const cell = s.grid && s.grid[ny] && s.grid[ny][nx];
-          if (!cell || cell.blocked) {
-            this.log('⛰️ Путь заблокирован.');
-            return;
-          }
-          p.x = nx;
-          p.y = ny;
-          p.stepsLeft -= cost;
-          p.movedThisTurn = true;
-          this.log('🚶 Шаг [' + (p.x + 1) + ':' + (p.y + 1) + '] (-' + cost + ' ОХ, ост. ' + p.stepsLeft + ').');
-          if (typeof this.playStepSound === 'function') this.playStepSound(p.moveMode || 'careful');
-          const zHit = Array.isArray(s.zombies) && s.zombies.find(function(z) { return z && Number(z.x) === nx && Number(z.y) === ny; });
-          if (zHit && !p.mapStealthOn && typeof this.triggerEncounter === 'function') {
-            zHit.hidden = false;
-            this.triggerEncounter(p, zHit);
-            return;
-          }
-          this.saveDB();
-          this.renderGame();
-        };
+      endTurn() {
+        this.turn++;
+        this.ap = this.maxAp;
+        this.moved = false;
+        this.log('--- Ход ' + this.turn + ' (ОХ: ' + this.ap + '/' + this.maxAp + ') ---');
+        this.render();
+      },
 
-        window.STIKS.init();
+      render() {
+        document.getElementById('hud-hero').innerHTML = 'Боец: <b>' + this.heroName + '</b>';
+        document.getElementById('hud-turn').textContent = this.turn;
+        document.getElementById('hud-ap').textContent = this.ap + '/' + this.maxAp;
+        document.getElementById('hud-xy').textContent = (this.x + 1) + ':' + (this.y + 1);
 
-        const cVer = window.STIKS_CONTENT ? window.STIKS_CONTENT.version : 'НЕТ';
-        if (badge) badge.innerText = 'Ядро: ' + window.STIKS.version + ' | Контент: ' + cVer;
-        window.STIKS.log('Модули подключены: zopa.js (' + window.STIKS.version + ') + stiks_content.js (' + cVer + ').');
-      });
-    })();
+        ['careful', 'fast', 'run'].forEach(m => {
+          const b = document.getElementById('m-' + m);
+          if (b) b.className = 'btn' + (this.mode === m ? ' btn-primary' : '');
+        });
+
+        let html = '';
+        for (let dy = -5; dy <= 5; dy++) {
+          for (let dx = -5; dx <= 5; dx++) {
+            const gx = this.x + dx, gy = this.y + dy;
+            if (dx === 0 && dy === 0) {
+              html += '<div class="cell me">' + this.heroIcon + '</div>';
+            } else if (gx < 0 || gx > 59 || gy < 0 || gy > 59) {
+              html += '<div class="cell exit">🚪</div>';
+            } else {
+              const cell = this.map[gy][gx];
+              if (cell.wall) html += '<div class="cell wall">⛰️</div>';
+              else if (cell.loot) html += '<div class="cell loot">📦</div>';
+              else html += '<div class="cell"></div>';
+            }
+          }
+        }
+        document.getElementById('map-grid').innerHTML = html;
+      }
+    };
+
+    DEV_GAME.init();
   </script>
 </body>
 </html>
