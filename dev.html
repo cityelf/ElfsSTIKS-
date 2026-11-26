@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>S-T-I-K-S // DEV v3.0.5 (zopa.js + stiks_content.js)</title>
+  <title>S-T-I-K-S // DEV (AUTO-NOCACHE)</title>
   <style>
     * { box-sizing: border-box; }
     body { background: #0b0d0c; color: #c8d6cc; font-family: 'Courier New', monospace; margin: 0; padding: 10px; }
@@ -24,7 +24,7 @@
 </head>
 <body>
   <div class="wrapper">
-    <h1>S-T-I-K-S // УЛЕЙ (DEV v3.0.5)</h1>
+    <h1>S-T-I-K-S // УЛЕЙ (DEV)</h1>
     <div id="patch-status" class="patch-badge">Загрузка модулей...</div>
     <div class="top-controls">
       <button id="btn-voice-toggle" type="button" class="btn" onclick="STIKS.toggleVoice()">🔊 Голос: ВКЛ</button>
@@ -36,37 +36,50 @@
     <div id="sys-log" class="log-box">&gt; Инициализация чистого ядра...</div>
   </div>
 
-  <script src="stiks_content.js?v=3.0.5"></script>
-  <script src="zopa.js?v=3.0.5"></script>
   <script>
-    window.addEventListener('load', function() {
-      const badge = document.getElementById('patch-status');
-      if (!window.STIKS) {
-        if (badge) badge.innerText = '❌ Ошибка: zopa.js не загружен';
-        return;
+    (function() {
+      const ts = Date.now();
+      function loadScript(src) {
+        return new Promise(function(resolve) {
+          const s = document.createElement('script');
+          s.src = src + '?v=' + ts;
+          s.onload = resolve;
+          s.onerror = resolve;
+          document.body.appendChild(s);
+        });
       }
 
-      if (typeof window.STIKS.toggleVoice !== 'function') {
-        window.STIKS.toggleVoice = function() {
-          this.voiceOn = !this.voiceOn;
-          const btn = document.getElementById('btn-voice-toggle');
-          if (btn) btn.textContent = this.voiceOn ? '🔊 Голос: ВКЛ' : '🔇 Голос: ВЫКЛ';
-          if (!this.voiceOn && 'speechSynthesis' in window) {
-            try { window.speechSynthesis.cancel(); } catch (e) {}
-          }
-        };
-      }
+      loadScript('stiks_content.js').then(function() {
+        return loadScript('zopa.js');
+      }).then(function() {
+        const badge = document.getElementById('patch-status');
+        if (!window.STIKS) {
+          if (badge) badge.innerText = '❌ Ошибка: zopa.js не загружен';
+          return;
+        }
 
-      if (window.STIKS_CONTENT && typeof window.STIKS_CONTENT.applyToEngines === 'function') {
-        window.STIKS_CONTENT.applyToEngines();
-      }
+        if (typeof window.STIKS.toggleVoice !== 'function') {
+          window.STIKS.toggleVoice = function() {
+            this.voiceOn = !this.voiceOn;
+            const btn = document.getElementById('btn-voice-toggle');
+            if (btn) btn.textContent = this.voiceOn ? '🔊 Голос: ВКЛ' : '🔇 Голос: ВЫКЛ';
+            if (!this.voiceOn && 'speechSynthesis' in window) {
+              try { window.speechSynthesis.cancel(); } catch (e) {}
+            }
+          };
+        }
 
-      window.STIKS.init();
+        if (window.STIKS_CONTENT && typeof window.STIKS_CONTENT.applyToEngines === 'function') {
+          window.STIKS_CONTENT.applyToEngines();
+        }
 
-      const cVer = window.STIKS_CONTENT ? window.STIKS_CONTENT.version : 'НЕТ';
-      if (badge) badge.innerText = 'Ядро: ' + window.STIKS.version + ' | Контент: ' + cVer;
-      window.STIKS.log('Модули подключены: zopa.js (' + window.STIKS.version + ') + stiks_content.js (' + cVer + ').');
-    });
+        window.STIKS.init();
+
+        const cVer = window.STIKS_CONTENT ? window.STIKS_CONTENT.version : 'НЕТ';
+        if (badge) badge.innerText = 'Ядро: ' + window.STIKS.version + ' | Контент: ' + cVer;
+        window.STIKS.log('Модули подключены: zopa.js (' + window.STIKS.version + ') + stiks_content.js (' + cVer + ').');
+      });
+    })();
   </script>
 </body>
 </html>
