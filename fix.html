@@ -3,40 +3,59 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>STIKS Auto-Patcher v3</title>
+<title>STIKS Auto-Patcher v4.1</title>
 <style>
   body{margin:0;padding:12px;background:#0d1117;color:#e6edf3;font-family:sans-serif;font-size:14px}
   .card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px;margin-bottom:10px}
-  textarea{width:100%;height:130px;background:#0d1117;color:#7ee787;border:1px solid #30363d;border-radius:6px;padding:8px;box-sizing:border-box;font-family:monospace;font-size:12px;margin-top:6px}
+  textarea{width:100%;height:140px;background:#0d1117;color:#7ee787;border:1px solid #30363d;border-radius:6px;padding:8px;box-sizing:border-box;font-family:monospace;font-size:12px;margin-top:6px}
+  input[type="text"]{width:100%;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:6px;padding:8px;box-sizing:border-box;font-family:monospace;font-size:13px;margin-top:4px}
   .btn{width:100%;padding:12px;border:none;border-radius:6px;font-weight:bold;font-size:14px;cursor:pointer;margin-top:8px}
-  .blue{background:#2f81f7;color:#fff}.green{background:#3fb950;color:#000}.gray{background:#30363d;color:#fff}
-  .btn:disabled{opacity:.4}
-  .ok{color:#3fb950}.err{color:#f85149}
+  .btn-sm{width:auto;padding:6px 10px;margin:0;font-size:12px}
+  .blue{background:#2f81f7;color:#fff}.green{background:#3fb950;color:#000}.gray{background:#30363d;color:#fff}.amber{background:#d29922;color:#000}.red{background:#da3633;color:#fff}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .ok{color:#3fb950}.err{color:#f85149}.warn{color:#d29922}
   pre{background:#090c10;border:1px solid #f85149;padding:8px;border-radius:6px;overflow-x:auto;font-size:11px;color:#ffa198;white-space:pre-wrap}
 </style>
 </head>
 <body>
-  <h3 style="margin:0 0 10px">🔧 Авто-патчер v3</h3>
+  <h3 style="margin:0 0 10px">🔧 STIKS Auto-Patcher v4.1</h3>
   
   <div class="card">
-    <div><b>Шаг 1:</b> Выберите ваш .js файл</div>
-    <input type="file" id="fileIn" accept=".js,.txt" style="margin-top:8px;width:100%">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <b>Шаг 1: Исходный файл (.js / .html / .txt)</b>
+      <button class="btn red btn-sm" id="btnResetFile" style="display:none">✖ Сбросить</button>
+    </div>
+    <input type="file" id="fileIn" accept=".js,.html,.htm,.txt" style="margin-top:8px;width:100%">
     <div id="fileInfo" style="margin-top:6px;font-size:12px;color:#8b949e">Файл не загружен</div>
   </div>
 
   <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <b>Шаг 2: Патч-команда от ИИ</b>
-      <button class="btn blue" id="btnPaste" style="width:auto;padding:6px 12px;margin:0;font-size:12px">📋 Вставить</button>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap">
+      <b>Шаг 2: Патч-команда</b>
+      <div style="display:flex;gap:5px">
+        <button class="btn gray btn-sm" id="btnPatchFile">📂 Из файла</button>
+        <button class="btn blue btn-sm" id="btnPaste">📋 Вставить</button>
+        <button class="btn red btn-sm" id="btnClear">✖ Очистить</button>
+      </div>
     </div>
-    <textarea id="patchIn" placeholder="Нажмите «📋 Вставить»..."></textarea>
+    <input type="file" id="patchFileIn" accept=".json,.txt,.js" style="display:none">
+    <textarea id="patchIn" placeholder="Вставьте текст патча или загрузите через «📂 Из файла»..."></textarea>
+
+    <div style="margin-top:8px">
+      <label style="font-size:12px;color:#8b949e">Имя итогового файла при скачивании:</label>
+      <input type="text" id="outNameIn" value="zopa.js" placeholder="Например: zopa.js или dev.html">
+    </div>
+
     <button class="btn green" id="btnApply" disabled>⚡ Применить и скачать</button>
-    <button class="btn gray" id="btnForceSave" style="display:none">💾 Скачать как есть</button>
-    <div id="log" style="margin-top:10px;font-size:13px;line-height:1.4"></div>
+    <button class="btn amber" id="btnChain" style="display:none">🔄 Закрепить результат (для след. патча)</button>
+    <button class="btn gray" id="btnForceSave" style="display:none">💾 Скачать как есть (игнор ошибки)</button>
+    <div id="log" style="margin-top:10px;font-size:13px;line-height:1.45"></div>
   </div>
 
 <script>
-let fileText = '', fileName = 'ZOPA.JS', lastRes = '';
+let fileText = '', fileName = 'zopa.js', lastRes = '', patchStep = 0;
+
+const normNL = s => String(s || '').replace(/\r\n/g, '\n');
 
 document.getElementById('btnPaste').onclick = async () => {
   try {
@@ -48,30 +67,111 @@ document.getElementById('btnPaste').onclick = async () => {
   }
 };
 
-document.getElementById('fileIn').onchange = e => {
+document.getElementById('btnClear').onclick = () => {
+  document.getElementById('patchIn').value = '';
+  document.getElementById('patchFileIn').value = '';
+  document.getElementById('log').innerHTML = '';
+};
+
+document.getElementById('btnPatchFile').onclick = () => {
+  document.getElementById('patchFileIn').click();
+};
+
+document.getElementById('patchFileIn').onchange = e => {
   const f = e.target.files.item(0);
   if (!f) return;
-  fileName = f.name;
   const r = new FileReader();
   r.onload = ev => {
-    fileText = ev.target.result;
-    document.getElementById('fileInfo').innerHTML = `<span class="ok">✅ ${fileName} (${fileText.split('\n').length} строк)</span>`;
-    document.getElementById('btnApply').disabled = false;
+    document.getElementById('patchIn').value = normNL(ev.target.result);
+    document.getElementById('log').innerHTML = `<span class="ok">📂 Загружен файл патча: ${f.name}</span>`;
   };
   r.readAsText(f, 'UTF-8');
 };
 
-function parseOps(raw) {
-  if (raw.includes('===FIND===')) {
-    return raw.split('===BLOCK===').map(b => b.trim()).filter(Boolean).map((b, i) => {
-      const p1 = b.split('===FIND===').at(1) || '';
-      const parts = p1.split('===TO===');
-      return { desc: 'Блок ' + (i + 1), act: 'replace', find: parts.at(0).replace(/^\n|\n$/g, ''), to: (parts.at(1) || '').replace(/^\n|\n$/g, '') };
+document.getElementById('btnResetFile').onclick = () => {
+  fileText = '';
+  lastRes = '';
+  patchStep = 0;
+  document.getElementById('fileIn').value = '';
+  document.getElementById('fileInfo').innerHTML = 'Файл не загружен';
+  document.getElementById('btnApply').disabled = true;
+  document.getElementById('btnResetFile').style.display = 'none';
+  document.getElementById('btnChain').style.display = 'none';
+  document.getElementById('btnForceSave').style.display = 'none';
+  document.getElementById('log').innerHTML = '';
+};
+
+document.getElementById('fileIn').onchange = e => {
+  const f = e.target.files.item(0);
+  if (!f) return;
+  fileName = f.name;
+  patchStep = 0;
+  document.getElementById('outNameIn').value = fileName;
+  const r = new FileReader();
+  r.onload = ev => {
+    fileText = normNL(ev.target.result);
+    document.getElementById('fileInfo').innerHTML = `<span class="ok">✅ ${fileName} (${fileText.split('\n').length} строк)</span>`;
+    document.getElementById('btnApply').disabled = false;
+    document.getElementById('btnResetFile').style.display = 'inline-block';
+    document.getElementById('btnChain').style.display = 'none';
+    document.getElementById('btnForceSave').style.display = 'none';
+  };
+  r.readAsText(f, 'UTF-8');
+};
+  function stripCodeFences(raw) {
+  let s = raw.trim();
+  s = s.replace(/^```[a-zA-Z0-9_-]*\s*\n?/i, '').replace(/\n?```\s*$/, '');
+  return normNL(s).trim();
+}
+
+function parseOps(rawInput) {
+  const raw = stripCodeFences(rawInput);
+  if (!raw) throw new Error('Поле патча пустое.');
+
+  if (raw.includes('===FIND===') || raw.includes('===APPEND===')) {
+    const blocks = raw.split('===BLOCK===').map(b => b.trim()).filter(Boolean);
+    return blocks.map((b, i) => {
+      if (b.includes('===APPEND===')) {
+        const parts = b.split('===APPEND===');
+        const desc = parts.at(0).trim() || ('Добавление ' + (i + 1));
+        const to = (parts.at(1) || '').replace(/^\n|\n$/g, '');
+        return { desc, act: 'append', to };
+      }
+      const fParts = b.split('===FIND===');
+      const desc = fParts.at(0).trim() || ('Блок ' + (i + 1));
+      const p1 = fParts.at(1) || '';
+      const tParts = p1.split('===TO===');
+      if (tParts.length < 2) throw new Error(`В блоке "${desc}" отсутствует разделитель ===TO===`);
+      return {
+        desc,
+        act: 'replace',
+        find: tParts.at(0).replace(/^\n|\n$/g, ''),
+        to: tParts.at(1).replace(/^\n|\n$/g, '')
+      };
     });
   }
-  const fixed = raw.replace(/"((?:[^"\\]|\\.)*)"/gs, m => m.replace(/\r?\n/g, '\\n'));
-  const parsed = JSON.parse(fixed);
-  return Array.isArray(parsed) ? parsed : [parsed];
+
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (e1) {
+    const fixed = raw.replace(/"((?:[^"\\]|\\.)*)"/gs, m => m.replace(/\n/g, '\\n'));
+    parsed = JSON.parse(fixed);
+  }
+
+  const list = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.patches) ? parsed.patches : [parsed]);
+  return list.map((item, i) => {
+    if (!item || typeof item !== 'object') throw new Error(`Некорректный элемент патча #${i + 1}`);
+    const desc = item.desc || item.name || ('Шаг ' + (i + 1));
+    const act = item.act || (item.append !== undefined ? 'append' : 'replace');
+    if (act === 'append') {
+      return { desc, act: 'append', to: normNL(item.to ?? item.append ?? item.replace ?? '') };
+    }
+    const find = normNL(item.find ?? item.search ?? item.old ?? '');
+    const to = normNL(item.to ?? item.replace ?? item.new ?? '');
+    if (!find) throw new Error(`В шаге "${desc}" не указан текст поиска (find)`);
+    return { desc, act: 'replace', find, to };
+  });
 }
 
 function findErrorLine(code) {
@@ -86,40 +186,82 @@ function findErrorLine(code) {
   return lines.slice(from, to).map((l, idx) => `${from + idx + 1 === bad ? '>>> ' : '    '}${from + idx + 1}: ${l}`).join('\n');
 }
 
-function downloadJS(txt) {
+function validateSyntax(code, name) {
+  if (/\.html?$/i.test(name)) {
+    const scripts = [...code.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)];
+    for (let i = 0; i < scripts.length; i++) {
+      const js = scripts.at(i).at(1);
+      if (js && js.trim()) new Function(js);
+    }
+    return;
+  }
+  new Function(code);
+}
+
+function downloadFile(txt) {
+  const customName = (document.getElementById('outNameIn').value || '').trim() || fileName || 'zopa.js';
+  const mime = /\.html?$/i.test(customName) ? 'text/html;charset=utf-8' : 'application/javascript;charset=utf-8';
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([txt], { type: 'application/javascript;charset=utf-8' }));
-  a.download = fileName.replace(/\.js$/i, '') + '_fixed.js';
+  a.href = URL.createObjectURL(new Blob([txt], { type: mime }));
+  a.download = customName;
   a.click();
 }
 
-document.getElementById('btnForceSave').onclick = () => { if (lastRes) downloadJS(lastRes); };
+document.getElementById('btnForceSave').onclick = () => { if (lastRes) downloadFile(lastRes); };
+
+document.getElementById('btnChain').onclick = () => {
+  if (!lastRes) return;
+  fileText = lastRes;
+  document.getElementById('patchIn').value = '';
+  document.getElementById('patchFileIn').value = '';
+  document.getElementById('btnChain').style.display = 'none';
+  document.getElementById('fileInfo').innerHTML = `<span class="ok">✅ ${fileName} [в памяти: шаг ${patchStep}] (${fileText.split('\n').length} строк)</span>`;
+  document.getElementById('log').innerHTML = `<span class="warn">🔄 Результат закреплён. Загрузите или вставьте следующий патч!</span>`;
+};
 
 document.getElementById('btnApply').onclick = () => {
   const log = document.getElementById('log');
   document.getElementById('btnForceSave').style.display = 'none';
+  document.getElementById('btnChain').style.display = 'none';
+
   let ops;
-  try { ops = parseOps(document.getElementById('patchIn').value.trim()); }
-  catch (e) { log.innerHTML = `<span class="err">❌ Ошибка патча: ${e.message}</span>`; return; }
+  try { ops = parseOps(document.getElementById('patchIn').value); }
+  catch (e) { log.innerHTML = `<span class="err">❌ Ошибка разбора патча: ${e.message}</span>`; return; }
 
   let res = fileText, report = [];
   for (let i = 0; i < ops.length; i++) {
     const op = ops.at(i);
-    if (!res.includes(op.find)) { log.innerHTML = `<span class="err">❌ Не найден фрагмент (${op.desc || i+1})</span>`; return; }
+    if (op.act === 'append') {
+      res = res + '\n' + op.to;
+      report.push(`✔ ${op.desc} (добавлено в конец)`);
+      continue;
+    }
+    const count = res.split(op.find).length - 1;
+    if (count === 0) {
+      const preview = op.find.slice(0, 120).replace(/</g, '&lt;');
+      log.innerHTML = report.join('<br>') + `<br><span class="err">❌ Не найден фрагмент (${op.desc}):</span><pre>${preview}...</pre>`;
+      return;
+    }
     res = res.replace(op.find, op.to);
-    report.push(`✔ ${op.desc || 'Шаг ' + (i+1)}`);
+    report.push(`✔ ${op.desc}${count > 1 ? ` (заменено 1-е из ${count})` : ''}`);
   }
 
+  patchStep++;
   lastRes = res;
-  try { new Function(res); }
-  catch (err) {
+  const outName = (document.getElementById('outNameIn').value || '').trim() || fileName;
+
+  try {
+    validateSyntax(res, outName);
+  } catch (err) {
     document.getElementById('btnForceSave').style.display = 'block';
-    log.innerHTML = report.join('<br>') + `<br><span class="err">⚠️ Ошибка JS: ${err.message}</span><pre>${findErrorLine(res).replace(/</g,'&lt;')}</pre>`;
+    const snippet = /\.html?$/i.test(outName) ? err.message : findErrorLine(res).replace(/</g, '&lt;');
+    log.innerHTML = report.join('<br>') + `<br><span class="err">⚠️ Ошибка синтаксиса JS: ${err.message}</span><pre>${snippet}</pre>`;
     return;
   }
 
-  downloadJS(res);
-  log.innerHTML = report.join('<br>') + `<br><span class="ok">🎉 ГОТОВО! Синтаксис чистый, файл скачан!</span>`;
+  document.getElementById('btnChain').style.display = 'block';
+  downloadFile(res);
+  log.innerHTML = report.join('<br>') + `<br><span class="ok">🎉 ГОТОВО! Файл «${outName}» проверен и скачан!</span>`;
 };
 </script>
 </body>
