@@ -73,6 +73,24 @@
           window.STIKS_CONTENT.applyToEngines();
         }
 
+        const origRender = window.STIKS.renderGame.bind(window.STIKS);
+        window.STIKS.renderGame = function() {
+          origRender();
+          const s = this.db && this.db.session;
+          const vp = document.getElementById('game-viewport');
+          if (!s || !vp || s.combat) return;
+          if (s.combat && (!window.STIKS_COMBAT_CORE || !window.STIKS_COMBAT_CORE.state)) s.combat = null;
+          if (s.humanEncounter && !s.humanEncounter.zId) s.humanEncounter = null;
+          const p = s.players[Number(s.activeIdx) || 0];
+          if (p && (typeof p.stepsLeft !== 'number' || isNaN(p.stepsLeft) || (Number(s.turn) === 1 && !p.movedThisTurn && p.stepsLeft <= 0))) {
+            p.stepsLeft = p.maxAp || 6;
+          }
+          vp.querySelectorAll('button[onclick*="stepPlayer"]').forEach(function(btn) {
+            const m = (btn.getAttribute('onclick') || '').match(/stepPlayer\((-?\d+),\s*(-?\d+)\)/);
+            if (m) btn.onclick = function() { window.STIKS.stepPlayer(Number(m[1]), Number(m[2])); };
+          });
+        };
+
         window.STIKS.init();
 
         const cVer = window.STIKS_CONTENT ? window.STIKS_CONTENT.version : 'НЕТ';
