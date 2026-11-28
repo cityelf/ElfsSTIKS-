@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>S-T-I-K-S // Палата № 6</title>
+    <link rel="stylesheet" href="style.css?v=32">
+</head>
+<body>
+    <div id="global-bg"></div>
+    <div id="app">
+        <div id="global-header" class="top-controls" style="display:none;">
+            <span id="header-info" class="header-info"></span>
+            <div class="header-buttons">
+                <button class="btn-icon" onclick="STIKS.openCharSheet()" title="Персонаж и Экипировка">👤</button>
+                <button class="btn-icon" onclick="STIKS.toggleLogPanel()" title="Бортовой журнал">📜</button>
+                <button class="btn-icon" onclick="STIKS.openHiveJournal()" title="Дневник Улья (База знаний)">📖</button>
+                <button class="btn-icon" onclick="STIKS.openAudioSettings()" title="Звук и озвучка">🔊</button>
+                <button class="btn-icon" id="btn-2d-3d" onclick="if(window.STIKS3D) STIKS3D.toggleMode()" title="Переключить вид 2D / 3D" style="border-color:rgba(16,185,129,0.55);color:#34d399;">🧊 3D</button>
+                <button class="btn-icon" id="btn-pc-mode" onclick="STIKS.togglePcMode()" title="ПК-режим (3 колонки)">🖥️</button>
+                <button class="btn-icon" id="btn-quit" onclick="STIKS.quitToMenu()" title="Выйти в меню">🚪</button>
+            </div>
+        </div>
+        <div id="pc-layout" class="pc-layout" style="display:none;">
+            <div id="pc-col-left" class="pc-col pc-col-left"></div>
+            <div id="pc-col-center" class="pc-col pc-col-center"></div>
+            <div id="pc-col-right" class="pc-col pc-col-right"></div>
+        </div>
+        <div id="screen-container"></div>
+        <div id="modal-container" class="modal-overlay" style="display:none;"></div>
+        <div id="log-drawer" class="log-drawer" style="display:none;">
+            <div class="log-header">
+                <span>БОРТОВОЙ ЖУРНАЛ</span>
+                <button class="btn-close" onclick="STIKS.toggleLogPanel()">✕</button>
+            </div>
+            <div id="log-content" class="log-content"></div>
+        </div>
+    </div>
+    <script src="data.js?v=32"></script>
+    <script src="stiks_db.js?v=32"></script>
+    <script src="stiks_content.js?v=32"></script>
+    <script src="stiks_engine.js?v=32"></script>
+    <script src="patch.js?v=32"></script>
+    <script src="stiks_patcher.js?v=32"></script>
+    <script src="three.min.js?v=160"></script>
+    <script>
+        if (!window.THREE) {
+            document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"><\/script>');
+        }
+    </script>
+    <script src="stiks_3d.js?v=1"></script>
+</body>
+</html>
