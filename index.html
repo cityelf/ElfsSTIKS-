@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>S-T-I-K-S // Палата № 6</title>
-    <link rel="stylesheet" href="style.css?v=32">
+    <link rel="stylesheet" href="style.css?v=33">
 </head>
 <body>
     <div id="global-bg"></div>
@@ -36,18 +36,24 @@
             <div id="log-content" class="log-content"></div>
         </div>
     </div>
-    <script src="data.js?v=32"></script>
-    <script src="stiks_db.js?v=32"></script>
-    <script src="stiks_content.js?v=32"></script>
-    <script src="stiks_engine.js?v=32"></script>
-    <script src="patch.js?v=32"></script>
-    <script src="stiks_patcher.js?v=32"></script>
+    <script src="data.js?v=33"></script>
+    <script src="stiks_db.js?v=33"></script>
+    <script src="stiks_content.js?v=33"></script>
+    <script src="stiks_engine.js?v=33"></script>
+    <script src="patch.js?v=33"></script>
+    <script src="stiks_patcher.js?v=33"></script>
     <script src="three.min.js?v=160"></script>
+    <script src="stiks_3d.js?v=2"></script>
     <script>
-        if (!window.THREE) {
-            document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"><\/script>');
-        }
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                var sc = document.getElementById('screen-container');
+                if (sc && !sc.innerHTML.trim() && window.STIKS) {
+                    if (typeof STIKS.init === 'function') STIKS.init();
+                    else if (typeof STIKS.renderMainMenu === 'function') STIKS.renderMainMenu();
+                }
+            }, 350);
+        });
     </script>
-    <script src="stiks_3d.js?v=1"></script>
 </body>
 </html>
