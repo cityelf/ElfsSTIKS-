@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>S-T-I-K-S: Тактический Симулятор</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { background: #0b0d0c; color: #c8d6cc; font-family: 'Courier New', monospace; margin: 0; padding: 10px; }
+    .wrapper { max-width: 520px; margin: 0 auto; background: #131715; border: 1px solid #6e2626; padding: 15px; }
+    h1 { font-size: 16px; text-align: center; color: #e09a9a; margin: 0 0 12px 0; border-bottom: 1px solid #6e2626; padding-bottom: 8px; }
+    .btn { background: #1e2622; color: #c8d6cc; border: 1px solid #6e2626; padding: 8px 10px; font-family: inherit; font-size: 11px; cursor: pointer; flex: 1; text-align: center; }
+    .btn:active { background: #3b1515; }
+    .btn-primary { background: #3b1515; border-color: #8f2d2d; color: #f5d6d6; font-weight: bold; }
+    .btn-danger { background: #2b1414; border-color: #5c2828; color: #d68585; }
+    #game-viewport { min-height: 250px; background: #0e1210; border: 1px solid #6e2626; padding: 12px; }
+    .log-box { margin-top: 12px; background: #070908; border: 1px solid #3d1c1c; padding: 8px; font-size: 11px; max-height: 110px; overflow-y: auto; color: #b5a3a3; }
+    .top-controls { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+    .patch-badge { font-size: 10px; color: #9e7f7f; text-align: right; margin-bottom: 6px; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <h1>S-T-I-K-S // ТАКТИЧЕСКИЙ СИМУЛЯТОР</h1>
+    <div id="patch-status" class="patch-badge">Ядро: v1.0</div>
+    <div class="top-controls">
+      <button id="btn-voice-toggle" class="btn" onclick="toggleVoice()">🔊 Озвучка: ВКЛ</button>
+      <button class="btn" id="btn-2d-3d" onclick="if(window.STIKS3D){STIKS3D.toggleMode();}else{alert('3D-модуль загружается...');}" style="border-color:#10b981;color:#34d399;font-weight:bold;">🧊 3D: ВКЛ</button>
+      <button class="btn btn-primary" onclick="downloadHeroesBackup()">💾 Сохранить персонажей</button>
+      <button class="btn" onclick="document.getElementById('load-heroes-input').click()">📂 Загрузить</button>
+      <input type="file" id="load-heroes-input" accept=".json,.txt,application/json,text/plain" style="display:none;" onchange="uploadHeroesBackup(this)">
+    </div>
+    <div id="game-viewport"></div>
+    <div id="sys-log" class="log-box">&gt; Система готова.</div>
+  </div>
+  
+  <script src="stiks_db.js"></script>
+  <script src="stiks_engine.js"></script>
+  <script src="patch.js"></script>
+  <script src="three.min.js?v=160"></script>
+  <script src="stiks_3d.js?v=5"></script>
+  <script src="stiks_patcher.js"></script>
+
+  <script>
+    function log(m) {
+      const b = document.getElementById('sys-log');
+      if (b) b.innerHTML = '&gt; ' + m + '<br>' + b.innerHTML;
+    }
+
+    function hasNonEmptyFamilies(obj) {
+      return !!(obj && obj.families && typeof obj.families === 'object' && Object.keys(obj.families).length > 0);
+    }
+
+    function saveDB() {
+      if (!window.STIKS || !window.STIKS.db) return;
+      const curDb = window.STIKS.db;
+      const rawPrev = localStorage.getItem('stiks_prod_db');
+      let prevDb = null;
+      if (rawPrev) {
+        try { prevDb = JSON.parse(rawPrev); } catch (e) {}
+      }
+      if (!hasNonEmptyFamilies(curDb) && hasNonEmptyFamilies(prevDb)) {
+        window.STIKS.db.families = prevDb.families;
+        return;
+      }
+      const serialized = JSON.stringify(window.STIKS.db);
+      localStorage.setItem('stiks_prod_db', serialized);
+      if (hasNonEmptyFamilies(window.STIKS.db)) {
+        localStorage.setItem('stiks_prod_db_safe_backup', serialized);
+      }
+    }
+
+    function toggleVoice() {
+      if (!window.STIKS) return;
+      window.STIKS.voiceOn = !window.STIKS.voiceOn;
+      const btn = document.getElementById('btn-voice-toggle');
+      if (btn) btn.innerText = window.STIKS.voiceOn ? '🔊 Озвучка: ВКЛ' : '🔇 Озвучка: ВЫКЛ';
+      if (!window.STIKS.voiceOn && 'speechSynthesis' in window) window.speechSynthesis.cancel();
+    }
+
+    function downloadHeroesBackup() {
+      if (!window.STIKS || !window.STIKS.db) return;
+      saveDB();
+      const raw = localStorage.getItem('stiks_prod_db') || JSON.stringify(window.STIKS.db);
+      const blob = new Blob([raw], { type: 'application/json;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const dt = new Date().toISOString().slice(0, 10);
+      a.href = url;
+      a.download = 'stiks_heroes_' + dt + '.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+      log('💾 Бэкап персонажей сохранён в файл (.json).');
+    }
+
+    function uploadHeroesBackup(input) {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (!parsed || typeof parsed !== 'object' || !parsed.families) {
+            throw new Error('Неверная структура файла сохранения');
+          }
+          window.STIKS.db = parsed;
+          const serialized = JSON.stringify(parsed);
+          localStorage.setItem('stiks_prod_db', serialized);
+          if (hasNonEmptyFamilies(parsed)) {
+            localStorage.setItem('stiks_prod_db_safe_backup', serialized);
+          }
+          log('📂 Персонажи загружены из файла. Обновление...');
+          setTimeout(function() { location.reload(); }, 250);
+        } catch (err) {
+          alert('Ошибка загрузки файла сохранения: ' + err.message);
+        }
+        input.value = '';
+      };
+      reader.readAsText(file, 'UTF-8');
+    }
+
+    window.onload = function() {
+      if (window.STIKS) {
+        let loaded = null;
+        const s = localStorage.getItem('stiks_prod_db');
+        const b = localStorage.getItem('stiks_prod_db_safe_backup');
+        if (s) {
+          try { loaded = JSON.parse(s); } catch (e) {}
+        }
+        if (!hasNonEmptyFamilies(loaded) && b) {
+          try {
+            const backupObj = JSON.parse(b);
+            if (hasNonEmptyFamilies(backupObj)) {
+              loaded = backupObj;
+              localStorage.setItem('stiks_prod_db', JSON.stringify(loaded));
+            }
+          } catch (e) {}
+        }
+        if (loaded) {
+          window.STIKS.db = loaded;
+        }
+        if (window.STIKS_PATCHER && window.STIKS_PATCHER.boot) {
+          const info = window.STIKS_PATCHER.boot();
+          const badge = document.getElementById('patch-status');
+          if (badge && info) badge.innerText = info;
+        }
+        if (window.STIKS.db && window.STIKS.db.session && window.STIKS.renderGame) {
+          window.STIKS.renderGame();
+        } else if (window.STIKS.renderLobby) {
+          window.STIKS.renderLobby();
+        }
+      } else {
+        log('Ошибка загрузки модулей stiks_db.js / stiks_engine.js');
+      }
+    };
+  </script>
+</body>
+</html>
