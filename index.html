@@ -1,125 +1,47 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>S-T-I-K-S // Палата № 6</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-        body { background: #0b0d10; color: #d8dee9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.45; min-height: 100vh; overflow-x: hidden; position: relative; }
-        #global-bg { position: fixed; inset: 0; z-index: -1; background-size: cover; background-position: center; background-repeat: no-repeat; opacity: 0.22; filter: blur(2px) brightness(0.6); transition: background-image 0.6s ease; }
-        #app { max-width: 640px; margin: 0 auto; padding: 12px; min-height: 100vh; display: flex; flex-direction: column; }
-        .top-controls { display: flex; justify-content: space-between; align-items: center; background: rgba(20, 24, 30, 0.92); border: 1px solid #2e3440; border-radius: 10px; padding: 8px 12px; margin-bottom: 12px; backdrop-filter: blur(6px); position: sticky; top: 8px; z-index: 40; }
-        .header-info { font-size: 0.85rem; font-weight: 600; color: #ebcb8b; }
-        .header-buttons { display: flex; gap: 6px; }
-        .btn-icon { background: #232831; border: 1px solid #3b4252; color: #eceff4; border-radius: 8px; padding: 6px 10px; font-size: 1rem; cursor: pointer; transition: 0.15s; }
-        .btn-icon:active { transform: scale(0.95); background: #2e3440; }
-        .card { background: rgba(22, 26, 32, 0.9); border: 1px solid #2e3440; border-radius: 12px; padding: 14px; margin-bottom: 12px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45); }
-        .card-title { font-size: 1.05rem; font-weight: 700; color: #88c0d0; margin-bottom: 8px; border-bottom: 1px solid #2e3440; padding-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
-        .btn { display: block; width: 100%; padding: 12px 14px; margin-bottom: 8px; background: #2b323d; color: #eceff4; border: 1px solid #434c5e; border-radius: 10px; font-size: 0.95rem; font-weight: 600; text-align: center; cursor: pointer; transition: all 0.15s; }
-        .btn:hover { background: #343d4b; }
-        .btn:active { transform: scale(0.98); }
-        .btn:disabled { opacity: 0.45; cursor: not-allowed; }
-        .btn-primary { background: #2e5a44; border-color: #4c8c6c; color: #e5f5ec; }
-        .btn-primary:hover { background: #376b51; }
-        .btn-danger { background: #6b262c; border-color: #a33b44; color: #fce8ea; }
-        .btn-danger:hover { background: #822e36; }
-        .btn-warning { background: #6e5223; border-color: #b5893a; color: #fdf5e6; }
-        .btn-small { padding: 7px 10px; font-size: 0.85rem; margin-bottom: 4px; }
-        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .btn-grid .btn { margin-bottom: 0; }
-        .stat-bar-wrap { background: #14171c; border-radius: 6px; height: 16px; overflow: hidden; border: 1px solid #2e3440; position: relative; margin: 4px 0; }
-        .stat-bar-fill { height: 100%; transition: width 0.25s ease; }
-        .stat-bar-text { position: absolute; inset: 0; font-size: 0.72rem; font-weight: 700; display: flex; align-items: center; justify-content: center; color: #fff; text-shadow: 0 1px 2px #000; }
-        .tag { display: inline-block; padding: 2px 7px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; background: #2e3440; color: #d8dee9; margin-right: 4px; margin-bottom: 4px; }
-        .tag-rare { background: #4c3b6e; color: #e2d4ff; }
-        .tag-danger { background: #5e2328; color: #ffcdd2; }
-        .tag-success { background: #234d38; color: #c8e6c9; }
-        .tag-warn { background: #5c451c; color: #ffecb3; }
-        .combat-Arena { position: relative; background: #101318; border: 1px solid #3b4252; border-radius: 10px; padding: 12px; margin-bottom: 10px; overflow: hidden; }
-        .combat-bg { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0.28; z-index: 0; }
-        .combat-content { position: relative; z-index: 1; }
-        .combat-vs { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-        .fighter-box { flex: 1; background: rgba(15, 18, 22, 0.85); border: 1px solid #3b4252; border-radius: 8px; padding: 8px; text-align: center; }
-        .fighter-img { width: 72px; height: 72px; border-radius: 8px; object-fit: cover; background: #1e222a; margin: 0 auto 6px; display: block; border: 1px solid #4c566a; }
-        .combat-log-box { background: #0d1014; border: 1px solid #2e3440; border-radius: 8px; padding: 8px; max-height: 150px; overflow-y: auto; font-size: 0.82rem; margin-top: 8px; }
-        .log-line { padding: 3px 0; border-bottom: 1px solid #191d24; }
-        .log-line:last-child { border-bottom: none; }
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.78); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 14px; }
-        .modal-box { background: #171b21; border: 1px solid #434c5e; border-radius: 12px; width: 100%; max-width: 540px; max-height: 88vh; overflow-y: auto; padding: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
-        .log-drawer { position: fixed; inset: 0; background: rgba(11, 13, 16, 0.96); z-index: 90; display: flex; flex-direction: column; padding: 14px; }
-        .log-header { display: flex; justify-content: space-between; align-items: center; font-weight: 700; color: #88c0d0; padding-bottom: 10px; border-bottom: 1px solid #2e3440; }
-        .btn-close { background: #3b4252; border: none; color: #fff; border-radius: 6px; padding: 4px 10px; font-size: 1rem; cursor: pointer; }
-        .log-content { flex: 1; overflow-y: auto; padding: 10px 0; font-size: 0.85rem; }
-        .slot-row { display: flex; justify-content: space-between; align-items: center; background: #1c2129; border: 1px solid #2e3440; border-radius: 8px; padding: 8px 10px; margin-bottom: 6px; }
-        .slot-label { font-size: 0.75rem; color: #81a1c1; text-transform: uppercase; }
-        .slot-val { font-size: 0.9rem; font-weight: 600; color: #eceff4; }
-        .input-dark { width: 100%; padding: 10px; background: #14171c; border: 1px solid #3b4252; border-radius: 8px; color: #eceff4; font-size: 0.95rem; margin-bottom: 8px; }
-        .dist-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-top: 6px; }
-        .dist-table th, .dist-table td { border: 1px solid #2e3440; padding: 6px; text-align: center; }
-        .dist-table th { background: #1e232b; color: #88c0d0; }
-        .v2-map-frame { display: flex; flex-direction: column; align-items: center; background: #0d1015; border: 1px solid #2e3440; border-radius: 10px; padding: 8px; margin-bottom: 10px; }
-        .v2-grid { display: grid; grid-template-columns: repeat(11, 1fr); gap: 2px; width: 100%; max-width: 396px; aspect-ratio: 1 / 1; background: #151921; padding: 3px; border-radius: 6px; border: 1px solid #3b4252; }
-        .v2-cell { position: relative; background: #1c222b; border-radius: 2px; display: flex; align-items: center; justify-content: center; font-size: 13px; overflow: hidden; user-select: none; aspect-ratio: 1 / 1; line-height: 1; }
-        .v2-cell-unknown { background: #090b0e; }
-        .v2-cell-explored { background: #161b22; opacity: 0.65; }
-        .v2-cell-visible { background: #212834; }
-        .v2-cell-barrier { background: #111317; }
-        .v2-cell-center { box-shadow: inset 0 0 0 2px #a3be8c; background: #26322b; }
-        .v2-cell-loot::after { content: ''; position: absolute; top: 2px; right: 2px; width: 5px; height: 5px; border-radius: 50%; background: #ebcb8b; box-shadow: 0 0 4px #ebcb8b; }
-        .v2-sprite-wrap { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
-        .v2-sprite-wrap svg { width: 85%; height: 85%; display: block; }
-        .v2-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; font-size: 0.72rem; color: #9aa5b5; margin-top: 6px; }
-        .v2-combat-sprite { width: 72px; height: 72px; margin: 0 auto 6px; display: flex; align-items: center; justify-content: center; background: #161a20; border-radius: 8px; border: 1px solid #3b4252; }
-        .v2-combat-sprite svg { width: 60px; height: 60px; }
-        body.pc-mode #app { max-width: 1580px; padding: 10px 16px; }
-        .pc-layout { display: grid; grid-template-columns: 330px minmax(480px, 1fr) 360px; gap: 14px; align-items: start; }
-        .pc-col { display: flex; flex-direction: column; gap: 10px; max-height: calc(100vh - 76px); overflow-y: auto; padding-right: 4px; }
-        .pc-col::-webkit-scrollbar { width: 5px; }
-        .pc-col::-webkit-scrollbar-thumb { background: #3b4252; border-radius: 4px; }
-        body.pc-mode .pc-col-center .v2-grid { max-width: 484px; }
-        body.pc-mode .pc-col-center .v2-cell { font-size: 16px; }
-        body.pc-mode .pc-col-right .log-content { max-height: calc(100vh - 200px); overflow-y: auto; font-size: 0.83rem; }
-        .pc-kbd-hint { display: inline-block; background: #14171c; border: 1px solid #434c5e; border-radius: 4px; padding: 1px 5px; font-size: 0.72rem; color: #88c0d0; margin-left: 6px; font-family: monospace; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>S-T-I-K-S // Палата № 6</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { background: #0b0d0c; color: #d8dee9; font-family: monospace; font-size: 12px; line-height: 1.4; padding: 8px; }
+  .wrapper { max-width: 640px; margin: 0 auto; background: #111613; border: 1px solid #6e2626; border-radius: 8px; padding: 10px; }
+  .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #6e2626; padding-bottom: 6px; margin-bottom: 8px; }
+  .header h1 { font-size: 14px; color: #ff9e9e; }
+  .top-controls { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+  .btn { background: #1b221e; color: #e2e8f0; border: 1px solid #6e2626; border-radius: 5px; padding: 6px 9px; font-family: monospace; font-size: 11px; cursor: pointer; }
+  .btn:active { transform: scale(0.98); }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn-primary { background: #3b1515; border-color: #8f2d2d; color: #f5d6d6; font-weight: bold; }
+  .btn-danger { background: #4a1216; border-color: #b91c1c; color: #fecaca; }
+  #game-viewport { min-height: 260px; margin-bottom: 8px; }
+  #sys-log { background: #080908; border: 1px solid #3d1c1c; border-radius: 5px; padding: 7px; height: 145px; overflow-y: auto; font-size: 11px; line-height: 1.4; }
+</style>
 </head>
 <body>
-    <div id="global-bg"></div>
-    <div id="app">
-        <div id="global-header" class="top-controls" style="display:none;">
-            <span id="header-info" class="header-info"></span>
-            <div class="header-buttons">
-                <button class="btn-icon" onclick="STIKS.openCharSheet()" title="Персонаж и Экипировка">👤</button>
-                <button class="btn-icon" onclick="STIKS.toggleLogPanel()" title="Бортовой журнал">📜</button>
-                <button class="btn-icon" onclick="STIKS.openHiveJournal()" title="Дневник Улья (База знаний)">📖</button>
-                <button class="btn-icon" onclick="STIKS.openAudioSettings()" title="Звук и озвучка">🔊</button>
-                <button class="btn-icon" id="btn-2d-3d" onclick="if(window.STIKS3D) STIKS3D.toggleMode()" title="Переключить вид 2D / 3D" style="border-color:rgba(16,185,129,0.55);color:#34d399;">🧊 3D</button>
-                <button class="btn-icon" id="btn-pc-mode" onclick="STIKS.togglePcMode()" title="ПК-режим (3 колонки)">🖥️</button>
-                <button class="btn-icon" id="btn-quit" onclick="STIKS.quitToMenu()" title="Выйти в меню">🚪</button>
-            </div>
-        </div>
-        <div id="pc-layout" class="pc-layout" style="display:none;">
-            <div id="pc-col-left" class="pc-col pc-col-left"></div>
-            <div id="pc-col-center" class="pc-col pc-col-center"></div>
-            <div id="pc-col-right" class="pc-col pc-col-right"></div>
-        </div>
-        <div id="screen-container"></div>
-        <div id="modal-container" class="modal-overlay" style="display:none;"></div>
-        <div id="log-drawer" class="log-drawer" style="display:none;">
-            <div class="log-header">
-                <span>БОРТОВОЙ ЖУРНАЛ</span>
-                <button class="btn-close" onclick="STIKS.toggleLogPanel()">✕</button>
-            </div>
-            <div id="log-content" class="log-content"></div>
-        </div>
-    </div>
-    <script src="data.js?v=35"></script>
-    <script src="stiks_db.js?v=35"></script>
-    <script src="stiks_content.js?v=35"></script>
-    <script src="stiks_engine.js?v=35"></script>
-    <script src="patch.js?v=35"></script>
-    <script src="stiks_patcher.js?v=35"></script>
-    <script src="three.min.js?v=160"></script>
-    <script src="stiks_3d.js?v=2"></script>
+<div class="wrapper">
+  <div class="header">
+    <h1>☣️ S-T-I-K-S // ПАЛАТА № 6</h1>
+    <span id="patch-status" style="font-size:10px;color:#d48a8a;">Ядро: v1.9.5-merged</span>
+  </div>
+  <div class="top-controls">
+    <button id="btn-voice" class="btn" onclick="STIKS.voiceOn=!STIKS.voiceOn;this.innerText=STIKS.voiceOn?'🔊 Голос: ВКЛ':'🔇 Голос: ВЫКЛ'">🔊 Голос: ВКЛ</button>
+    <button class="btn" onclick="STIKS.exportSave()">💾 Сейвы Фамилий</button>
+    <button class="btn" id="btn-2d-3d" onclick="if(window.STIKS3D) STIKS3D.toggleMode()" style="border-color:#10b981;color:#34d399;font-weight:bold;">🧊 3D: ВКЛ</button>
+  </div>
+  <div id="game-viewport"></div>
+  <div id="sys-log"></div>
+</div>
+
+<script src="data.js?v=40"></script>
+<script src="stiks_db.js?v=40"></script>
+<script src="stiks_content.js?v=40"></script>
+<script src="stiks_engine.js?v=40"></script>
+<script src="patch.js?v=40"></script>
+<script src="stiks_patcher.js?v=40"></script>
+<script src="three.min.js?v=160"></script>
+<script src="stiks_3d.js?v=3"></script>
 </body>
 </html>
